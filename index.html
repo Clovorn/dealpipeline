@@ -441,6 +441,8 @@ async function syncNow(){
   notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok','settings-notice-bar');
   refreshSettingsStatus();
 }
+
+async function testAndSaveApiKey(){
   const key=document.getElementById('s-apikey').value.trim();
   if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
   document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
