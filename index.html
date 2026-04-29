@@ -256,13 +256,6 @@
     </div>
     <div id="api-status" style="font-size:12px;color:var(--text2);margin-top:.6rem"></div>
 
-    <div class="settings-section">Form Selection</div>
-    <label class="field-label">Select form to sync</label>
-    <select class="field-inp" id="s-form-select" onchange="saveFormSelection(this.value, this.options[this.selectedIndex].text)">
-      <option value="">— save API key first to load forms —</option>
-    </select>
-    <div id="form-status" style="font-size:12px;color:var(--text2);margin-top:.5rem"></div>
-
     <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-green" onclick="syncNow()" id="sync-now-btn" disabled>↻ Sync submissions now</button>
       <button class="btn" onclick="clearJotformSettings()">Clear settings</button>
@@ -418,37 +411,52 @@ function checkPassword(){
 /* ─── Settings ─── */
 function refreshSettingsStatus(){
   const key=localStorage.getItem('jf_api_key')||'';
-  const formId=localStorage.getItem('jf_form_id')||'';
-  const formName=localStorage.getItem('jf_form_name')||'';
   const el=document.getElementById('current-status');
-  if(key){
-    document.getElementById('s-apikey').value=key;
-    loadFormsIntoSelect(key, formId);
-    document.getElementById('sync-now-btn').disabled=!formId;
-  }
+  if(key) document.getElementById('s-apikey').value=key;
+  document.getElementById('sync-now-btn').disabled=!key;
   el.innerHTML=`
     <div style="display:flex;flex-direction:column;gap:6px">
       <div><span class="status-dot ${key?'dot-green':'dot-red'}"></span>API Key: ${key?'<strong>Saved</strong>':'Not set'}</div>
-      <div><span class="status-dot ${formId?'dot-green':'dot-gray'}"></span>Form: ${formId?`<strong>${formName}</strong> <span style="color:var(--text3);font-size:11px">(ID: ${formId})</span>`:'Not selected'}</div>
+      <div><span class="status-dot dot-green"></span>Form: <strong>New Deal Sheet</strong> <span style="color:var(--text3);font-size:11px">(ID: ${JOTFORM_FORM_ID})</span></div>
       <div><span class="status-dot dot-green"></span>Supabase: <strong>Connected</strong></div>
     </div>`;
 }
 
-async function testAndSaveApiKey(){
+function clearJotformSettings(){
+  if(!confirm('Clear Jotform API key?')) return;
+  localStorage.removeItem('jf_api_key');
+  localStorage.removeItem('jf_form_id');
+  document.getElementById('s-apikey').value='';
+  document.getElementById('api-status').textContent='';
+  document.getElementById('sync-now-btn').disabled=true;
+  notice('Jotform settings cleared.','warn','settings-notice-bar');
+  refreshSettingsStatus();
+}
+
+async function syncNow(){
+  const key=localStorage.getItem('jf_api_key');
+  if(!key){ notice('API key must be saved first.','warn','settings-notice-bar'); return; }
+  notice('Syncing submissions…','info','settings-notice-bar');
+  const added=await doSync(key, JOTFORM_FORM_ID);
+  notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok','settings-notice-bar');
+  refreshSettingsStatus();
+}
   const key=document.getElementById('s-apikey').value.trim();
   if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
   document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
   try{
-    const res=await fetch(`/.netlify/functions/jotform?path=user%2Fforms&apiKey=${encodeURIComponent(key)}`);
+    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}%2Fsubmissions&apiKey=${encodeURIComponent(key)}`);
     const data=await res.json();
     if(data.responseCode===200){
       localStorage.setItem('jf_api_key',key);
+      localStorage.setItem('jf_form_id', JOTFORM_FORM_ID);
       const count=data.content?data.content.length:0;
-      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — '+count+' form'+(count!==1?'s':'')+' found</span>';
-      notice('API key saved successfully!','ok','settings-notice-bar');
-      await loadFormsIntoSelect(key,'');
+      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — '+count+' submission'+(count!==1?'s':'')+' ready to import</span>';
+      document.getElementById('sync-now-btn').disabled=false;
+      document.getElementById('sync-btn').style.display='inline-block';
+      notice('API key saved! Click "Sync submissions now" to import.','ok','settings-notice-bar');
     } else if(data.responseCode===401||data.responseCode===403){
-      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized — make sure your key has <strong>Full Access</strong> permissions in Jotform.</span>';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized — make sure your key has Full Access permissions.</span>';
     } else {
       document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Error ('+data.responseCode+'): '+data.message+'</span>';
     }
@@ -457,67 +465,13 @@ async function testAndSaveApiKey(){
   }
 }
 
-async function loadFormsIntoSelect(key, currentFormId){
-  const sel=document.getElementById('s-form-select');
-  sel.innerHTML='<option value="">Loading forms…</option>';
-  try{
-    const res=await fetch(`/.netlify/functions/jotform?path=user%2Fforms&apiKey=${encodeURIComponent(key)}`);
-    const data=await res.json();
-    if(data.responseCode===200){
-      sel.innerHTML='<option value="">— select a form —</option>'+data.content.map(f=>`<option value="${f.id}" ${f.id===currentFormId?'selected':''}>${f.title}</option>`).join('');
-      if(currentFormId) document.getElementById('sync-now-btn').disabled=false;
-      document.getElementById('form-status').textContent=data.content.length+' forms found.';
-    } else {
-      sel.innerHTML='<option value="">Could not load forms</option>';
-    }
-  }catch(e){
-    sel.innerHTML='<option value="">Error loading forms</option>';
-    document.getElementById('form-status').textContent='Error: '+e.message;
-  }
-}
-
-function saveFormSelection(formId, formName){
-  if(!formId) return;
-  localStorage.setItem('jf_form_id',formId);
-  localStorage.setItem('jf_form_name',formName);
-  document.getElementById('sync-now-btn').disabled=false;
-  document.getElementById('form-status').innerHTML='<span style="color:var(--green-text)">✓ Form saved: '+formName+'</span>';
-  notice('Form selection saved!','ok','settings-notice-bar');
-  refreshSettingsStatus();
-  // Show sync button on main dashboard
-  document.getElementById('sync-btn').style.display='inline-block';
-}
-
-function clearJotformSettings(){
-  if(!confirm('Clear all Jotform settings?')) return;
-  localStorage.removeItem('jf_api_key');
-  localStorage.removeItem('jf_form_id');
-  localStorage.removeItem('jf_form_name');
-  document.getElementById('s-apikey').value='';
-  document.getElementById('s-form-select').innerHTML='<option value="">— save API key first —</option>';
-  document.getElementById('api-status').textContent='';
-  document.getElementById('form-status').textContent='';
-  document.getElementById('sync-now-btn').disabled=true;
-  notice('Jotform settings cleared.','warn','settings-notice-bar');
-  refreshSettingsStatus();
-}
-
-async function syncNow(){
-  const key=localStorage.getItem('jf_api_key');
-  const formId=localStorage.getItem('jf_form_id');
-  if(!key||!formId){ notice('API key and form must be configured first.','warn','settings-notice-bar'); return; }
-  notice('Syncing submissions…','info','settings-notice-bar');
-  const added=await doSync(key,formId);
-  notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok','settings-notice-bar');
-  refreshSettingsStatus();
-}
+async function syncNow_settings(){ await syncNow(); } // alias
 
 async function triggerJotformSync(){
   const key=localStorage.getItem('jf_api_key');
-  const formId=localStorage.getItem('jf_form_id');
-  if(!key||!formId){ notice('Configure Jotform in Settings first.','warn'); return; }
+  if(!key){ notice('Configure Jotform in Settings first.','warn'); return; }
   notice('Syncing Jotform submissions…','info');
-  const added=await doSync(key,formId);
+  const added=await doSync(key, JOTFORM_FORM_ID);
   notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok');
 }
 
@@ -602,12 +556,11 @@ function xf(ans,field){
 // Auto-poll every 5 minutes if Jotform is configured
 function startAutoPoll(){
   const key=localStorage.getItem('jf_api_key');
-  const formId=localStorage.getItem('jf_form_id');
-  if(!key||!formId) return;
+  if(!key) return;
   setInterval(async()=>{
-    const added=await doSync(key,formId);
+    const added=await doSync(key, JOTFORM_FORM_ID);
     if(added>0) notice(`Auto-sync: ${added} new submission${added!==1?'s':''} added!`,'ok');
-  }, 5*60*1000); // every 5 minutes
+  }, 5*60*1000);
 }
 
 function changePassword(){
