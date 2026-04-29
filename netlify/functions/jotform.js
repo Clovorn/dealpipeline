@@ -5,7 +5,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing apiKey or path' }) };
   }
 
-  const url = `https://api.jotform.com/${path}?apiKey=${apiKey}&limit=100`;
+  const url = `https://ronnoco.jotform.com/API/${path}?apiKey=${apiKey}&limit=100`;
 
   try {
     const response = await fetch(url);
