@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Deal Pipeline Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --bg:#ffffff; --bg2:#f5f5f4; --bg3:#eeede8;
@@ -591,24 +591,41 @@ function setRole(r,btn){
 
 /* ─── Supabase init ─── */
 async function init(){
-  sb=supabase.createClient(SB_URL,SB_KEY);
-  document.getElementById('live-badge').textContent='● connected';
-  document.getElementById('live-badge').className='pill pill-green';
-  await loadDeals();
-  sb.channel('deals-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'deals'},()=>loadDeals())
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'activity_log'},async p=>{
-      const did=p.new.deal_id;
-      const {data}=await sb.from('activity_log').select('*').eq('deal_id',did).order('created_at',{ascending:false}).limit(30);
-      if(data) activityMap[did]=data;
-      if(selectedId===did) renderMain(did);
-    })
-    .subscribe();
-  document.getElementById('sync-badge').style.display='inline';
-  // Show sync button if jotform configured
-  if(localStorage.getItem('jf_form_id')) document.getElementById('sync-btn').style.display='inline-block';
-  // Start auto-polling for new submissions
-  startAutoPoll();
+  // Wait for supabase library to be available
+  let attempts = 0;
+  while(typeof supabase === 'undefined' && attempts < 20){
+    await new Promise(r => setTimeout(r, 250));
+    attempts++;
+  }
+  if(typeof supabase === 'undefined'){
+    document.getElementById('live-badge').textContent = '✗ failed to load';
+    document.getElementById('live-badge').className = 'pill pill-red';
+    notice('Could not load Supabase library. Check your internet connection and refresh.', 'error');
+    return;
+  }
+  try {
+    sb = supabase.createClient(SB_URL, SB_KEY);
+    document.getElementById('live-badge').textContent='● connected';
+    document.getElementById('live-badge').className='pill pill-green';
+    await loadDeals();
+    sb.channel('deals-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'deals'},()=>loadDeals())
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'activity_log'},async p=>{
+        const did=p.new.deal_id;
+        const {data}=await sb.from('activity_log').select('*').eq('deal_id',did).order('created_at',{ascending:false}).limit(30);
+        if(data) activityMap[did]=data;
+        if(selectedId===did) renderMain(did);
+      })
+      .subscribe();
+    document.getElementById('sync-badge').style.display='inline';
+    if(localStorage.getItem('jf_api_key')) document.getElementById('sync-btn').style.display='inline-block';
+    startAutoPoll();
+  } catch(e) {
+    document.getElementById('live-badge').textContent = '✗ error';
+    document.getElementById('live-badge').className = 'pill pill-red';
+    notice('Connection error: ' + e.message, 'error');
+    console.error('Init error:', e);
+  }
 }
 
 async function loadDeals(){
@@ -899,7 +916,7 @@ async function saveNewDeal(){
   ['nd-first','nd-last','nd-email','nd-phone'].forEach(id=>document.getElementById(id).value='');
 }
 
-init();
+document.addEventListener('DOMContentLoaded', () => init());
 </script>
 </body>
 </html>
