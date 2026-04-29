@@ -259,8 +259,10 @@
 
     <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-green" onclick="syncNow()" id="sync-now-btn" disabled>↻ Sync submissions now</button>
+      <button class="btn btn-primary" onclick="registerWebhook()" id="webhook-btn" disabled>🔗 Register webhook</button>
       <button class="btn" onclick="clearJotformSettings()">Clear settings</button>
     </div>
+    <div id="webhook-status" style="font-size:12px;color:var(--text2);margin-top:.5rem"></div>
 
     <div class="settings-section">Current Status</div>
     <div id="current-status" style="font-size:13px;color:var(--text2)">Loading…</div>
@@ -416,6 +418,7 @@ function refreshSettingsStatus(){
   const el=document.getElementById('current-status');
   if(key) document.getElementById('s-apikey').value=key;
   document.getElementById('sync-now-btn').disabled=!key;
+  document.getElementById('webhook-btn').disabled=!key;
   el.innerHTML=`
     <div style="display:flex;flex-direction:column;gap:6px">
       <div><span class="status-dot ${key?'dot-green':'dot-red'}"></span>API Key: ${key?'<strong>Saved</strong>':'Not set'}</div>
@@ -458,6 +461,7 @@ async function testAndSaveApiKey(){
       const formTitle=data.content&&data.content.title?data.content.title:'New Deal Sheet';
       document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — form: '+formTitle+'</span>';
       document.getElementById('sync-now-btn').disabled=false;
+      document.getElementById('webhook-btn').disabled=false;
       document.getElementById('sync-btn').style.display='inline-block';
       notice('API key saved! Click "Sync submissions now" to import.','ok','settings-notice-bar');
     } else if(data.responseCode===401||data.responseCode===403){
@@ -470,7 +474,47 @@ async function testAndSaveApiKey(){
   }
 }
 
-async function syncNow_settings(){ await syncNow(); } // alias
+async function registerWebhook(){
+  const key=localStorage.getItem('jf_api_key');
+  if(!key){ notice('Save your API key first.','warn','settings-notice-bar'); return; }
+  const webhookUrl = window.location.origin + '/.netlify/functions/webhook';
+  document.getElementById('webhook-status').textContent = 'Registering webhook…';
+  try{
+    // First check existing webhooks
+    const checkRes = await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}%2Fwebhooks&apiKey=${encodeURIComponent(key)}`);
+    const checkData = await checkRes.json();
+    const existing = checkData.content||{};
+    const alreadySet = Object.values(existing).includes(webhookUrl);
+    if(alreadySet){
+      document.getElementById('webhook-status').innerHTML = '<span style="color:var(--green-text)">✓ Webhook already registered!</span>';
+      notice('Webhook is already active — new submissions will appear automatically.','ok','settings-notice-bar');
+      return;
+    }
+    // Register the webhook via POST
+    const params = new URLSearchParams({ webhookURL: webhookUrl });
+    const regRes = await fetch(`/.netlify/functions/jotform-post?path=form%2F${JOTFORM_FORM_ID}%2Fwebhooks&apiKey=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const regData = await regRes.json();
+    if(regData.responseCode===200){
+      document.getElementById('webhook-status').innerHTML = '<span style="color:var(--green-text)">✓ Webhook registered! New submissions will appear automatically.</span>';
+      notice('Webhook active! Every new form submission will instantly appear in the dashboard.','ok','settings-notice-bar');
+    } else {
+      // Fallback: show manual instructions
+      document.getElementById('webhook-status').innerHTML = `<span style="color:var(--amber-text)">Auto-register failed. Set up manually:</span><br>
+        <span style="font-size:11px;color:var(--text2)">In Jotform → Your form → Settings → Integrations → Webhooks → paste:<br>
+        <code style="background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:11px">${webhookUrl}</code></span>`;
+    }
+  }catch(e){
+    document.getElementById('webhook-status').innerHTML = `<span style="color:var(--text2)">Set up webhook manually in Jotform:</span><br>
+      <span style="font-size:11px">Settings → Integrations → Webhooks → paste:<br>
+      <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">${webhookUrl}</code></span>`;
+  }
+}
+
+async function syncNow_settings(){ await syncNow(); }
 
 async function triggerJotformSync(){
   const key=localStorage.getItem('jf_api_key');
