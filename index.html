@@ -452,22 +452,27 @@ async function testAndSaveApiKey(){
   if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
   document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
   try{
-    // Use the form info endpoint — works reliably with Enterprise
-    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}&apiKey=${encodeURIComponent(key)}`);
+    const res=await fetch(`/.netlify/functions/jotform?path=user&apiKey=${encodeURIComponent(key)}`);
     const data=await res.json();
     if(data.responseCode===200){
       localStorage.setItem('jf_api_key',key);
-      localStorage.setItem('jf_form_id', JOTFORM_FORM_ID);
-      const formTitle=data.content&&data.content.title?data.content.title:'New Deal Sheet';
-      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — form: '+formTitle+'</span>';
+      localStorage.setItem('jf_form_id',JOTFORM_FORM_ID);
+      const username=data.content&&data.content.username?data.content.username:'connected';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected as '+username+'</span>';
       document.getElementById('sync-now-btn').disabled=false;
       document.getElementById('webhook-btn').disabled=false;
       document.getElementById('sync-btn').style.display='inline-block';
-      notice('API key saved! Click "Sync submissions now" to import.','ok','settings-notice-bar');
+      notice('API key saved! Click "Register webhook" to enable auto-sync.','ok','settings-notice-bar');
     } else if(data.responseCode===401||data.responseCode===403){
-      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized ('+data.responseCode+'): '+data.message+'</span>';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized: '+data.message+'</span>';
     } else {
-      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Error ('+data.responseCode+'): '+data.message+'</span>';
+      // Save anyway — webhook may still work even if user endpoint is restricted
+      localStorage.setItem('jf_api_key',key);
+      localStorage.setItem('jf_form_id',JOTFORM_FORM_ID);
+      document.getElementById('api-status').innerHTML='<span style="color:var(--amber-text)">⚠ Saved with limited access. Try registering webhook.</span>';
+      document.getElementById('sync-now-btn').disabled=false;
+      document.getElementById('webhook-btn').disabled=false;
+      document.getElementById('sync-btn').style.display='inline-block';
     }
   }catch(e){
     document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Connection failed: '+e.message+'</span>';
