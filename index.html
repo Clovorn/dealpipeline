@@ -482,26 +482,35 @@ async function triggerJotformSync(){
 
 async function doSync(key,formId){
   try{
-    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${formId}%2Fsubmissions&apiKey=${encodeURIComponent(key)}`);
-    const data=await res.json();
-    if(data.responseCode!==200) return 0;
+    let allSubs=[];
+    let offset=0;
+    const limit=100;
+    // Fetch all submissions via user endpoint (Enterprise doesn't allow form-specific endpoint)
+    while(true){
+      const res=await fetch(`/.netlify/functions/jotform?path=user%2Fsubmissions&apiKey=${encodeURIComponent(key)}&offset=${offset}&limit=${limit}`);
+      const data=await res.json();
+      if(data.responseCode!==200) break;
+      const batch=data.content||[];
+      // Filter to only our form
+      const formSubs=batch.filter(s=>s.form_id===formId);
+      allSubs=[...allSubs,...formSubs];
+      if(batch.length<limit) break; // no more pages
+      offset+=limit;
+    }
     let added=0;
-    for(const sub of data.content){
+    for(const sub of allSubs){
       const ans=sub.answers||{};
-      // Contact info
       const contactName=xfByQid(ans,'13')||xf(ans,'contact name')||'';
       const nameParts=contactName.split(' ');
       const fn=nameParts[0]||'Customer';
       const ln=nameParts.slice(1).join(' ')||'';
       const em=xfByQid(ans,'22')||xf(ans,'email')||'';
       const ph=xfByQid(ans,'12')||xf(ans,'phone')||'';
-      // Store info
       const storeName=xfByQid(ans,'15')||'';
       const storePhone=xfByQid(ans,'16')||'';
       const legalName=xfByQid(ans,'144')||'';
       const addrObj=ans['21']&&ans['21'].answer;
       const address=addrObj?[addrObj.addr_line1,addrObj.city,addrObj.state,addrObj.postal].filter(Boolean).join(', '):'';
-      // Deal info
       const salesRep=xfByQid(ans,'108')||'';
       const rom=xfByQid(ans,'99')||'';
       const purchaseType=xfByQid(ans,'48')||'Equipment Lease';
@@ -515,26 +524,24 @@ async function doSync(key,formId){
       const coffeeProgram=xfByQid(ans,'139')||'';
       const subGroup=xfByQid(ans,'137')||'';
       const custAccount=xfByQid(ans,'130')||'';
-      // Equipment - summarize from payment field
       const equipAns=ans['3']&&ans['3'].answer;
       const equipSummary=equipAns?Object.keys(equipAns).slice(0,3).join(', '):'See form';
-
       const {data:ex}=await sb.from('deals').select('id').eq('jotform_submission_id',sub.id).maybeSingle();
       if(!ex){
         await sb.from('deals').insert({
           jotform_submission_id:sub.id,
-          first_name:fn, last_name:ln, email:em, phone:ph,
-          store_name:storeName, store_phone:storePhone,
-          legal_business_name:legalName, address,
-          sales_rep:salesRep, rom, chain_store:chainStore,
-          purchase_type:purchaseType, total_eq_cost:totalEqCost,
-          parent_distributor:distributor, target_install_date:targetInstall,
-          graphics_package:graphicsPkg, emergency_install:emergency,
-          equipment_selection:equipSummary, notes,
-          coffee_program:coffeeProgram, sub_group:subGroup,
+          first_name:fn,last_name:ln,email:em,phone:ph,
+          store_name:storeName,store_phone:storePhone,
+          legal_business_name:legalName,address,
+          sales_rep:salesRep,rom,chain_store:chainStore,
+          purchase_type:purchaseType,total_eq_cost:totalEqCost,
+          parent_distributor:distributor,target_install_date:targetInstall,
+          graphics_package:graphicsPkg,emergency_install:emergency,
+          equipment_selection:equipSummary,notes,
+          coffee_program:coffeeProgram,sub_group:subGroup,
           customer_account:custAccount,
           deal_type:purchaseType||'Equipment Lease',
-          current_step:'submitted', phase:'leasing',
+          current_step:'submitted',phase:'leasing',
           jotform_answers:ans
         });
         added++;
