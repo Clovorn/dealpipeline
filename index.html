@@ -713,6 +713,116 @@ async function selectDeal(id){
   await loadActivity(id);renderMain(id);
 }
 
+function renderAnswers(ans){
+  if(!ans||!Object.keys(ans).length) return '<div style="font-size:12px;color:var(--text3)">No submission data available.</div>';
+
+  // Field groups matching the form structure
+  const groups = [
+    { label:'👤 Customer Information', qids:['108','101','138','131','129','130','109','111','112','124','118','137'] },
+    { label:'🏪 Store Details', qids:['15','144','16','21','125','14','18'] },
+    { label:'📞 Contact', qids:['13','12','22'] },
+    { label:'🚚 Delivery & Distribution', qids:['119','121','122','23','95','103','24','25','57','104','105','139'] },
+    { label:'🔧 Service', qids:['93','99','107','106'] },
+    { label:'💰 Deal Information', qids:['48','4','5','6','7','136','49','50','17','19','140','141','142','143'] },
+    { label:'🎨 Graphics', qids:['94','35','36','145','146','47'] },
+    { label:'📦 Equipment Selected', qids:['3','29','114'] },
+    { label:'📝 Notes', qids:['113'] },
+  ];
+
+  // Matrix qids (huge lists — render as collapsible)
+  const matrixQids = ['33','38','40','41','42','43'];
+
+  let html = '';
+
+  for(const grp of groups){
+    const cells = [];
+    for(const qid of grp.qids){
+      const a = ans[qid];
+      if(!a) continue;
+      const label = a.text||a.name||'Field '+qid;
+      const val = formatAnswer(a);
+      if(!val||val==='—') continue;
+      cells.push(`<div class="info-cell"><div class="lbl">${label}</div><div class="val">${val}</div></div>`);
+    }
+    if(!cells.length) continue;
+    html += `<div style="margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-top:.5rem">${grp.label}</div>
+      <div class="info-grid" style="margin-bottom:0">${cells.join('')}</div>
+    </div>`;
+  }
+
+  // Equipment matrices — collapsible
+  for(const qid of matrixQids){
+    const a = ans[qid];
+    if(!a||!a.answer) continue;
+    const label = a.text||'Equipment';
+    const items = parseMatrix(a.answer);
+    if(!items.length) continue;
+    const uid = 'mat-'+qid;
+    html += `<div style="margin-bottom:.8rem">
+      <div class="phase-lbl" style="margin-top:.5rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleSection('${uid}')">
+        📋 ${label} <span style="font-size:10px;color:var(--text3)">(${items.length} items) ▾</span>
+      </div>
+      <div id="${uid}" style="display:none;margin-top:6px;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg2)">
+            <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border)">Item</th>
+            <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border);width:80px">Qty</th>
+          </tr></thead>
+          <tbody>${items.map((it,i)=>`<tr style="background:${i%2===0?'var(--bg)':'var(--bg2)'}">
+            <td style="padding:5px 10px;color:var(--text);border-bottom:0.5px solid var(--border)">${it.name}</td>
+            <td style="padding:5px 10px;color:var(--text);border-bottom:0.5px solid var(--border)">${it.qty}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  return html || '<div style="font-size:12px;color:var(--text3)">No data to display.</div>';
+}
+
+function formatAnswer(a){
+  if(!a.answer) return '—';
+  if(typeof a.answer==='string') return a.answer.trim()||'—';
+  if(typeof a.answer==='object'){
+    // Address object
+    if(a.answer.addr_line1!==undefined){
+      return [a.answer.addr_line1,a.answer.addr_line2,a.answer.city,a.answer.state,a.answer.postal].filter(Boolean).join(', ')||'—';
+    }
+    // Date object
+    if(a.answer.month!==undefined){
+      return [a.answer.month,a.answer.day,a.answer.year].filter(Boolean).join('/')||'—';
+    }
+    // Phone object
+    if(a.answer.area!==undefined){
+      return ['('+a.answer.area+')',a.answer.phone].filter(Boolean).join(' ')||'—';
+    }
+    return Object.values(a.answer).filter(v=>v&&typeof v==='string').join(', ')||'—';
+  }
+  return '—';
+}
+
+function parseMatrix(answer){
+  // Matrix answers come as object of {rowName: {colName: value}}
+  if(typeof answer!=='object') return [];
+  const items=[];
+  for(const row in answer){
+    const cols=answer[row];
+    if(typeof cols==='object'){
+      const qty=cols['Quantity']||cols['quantity']||Object.values(cols).find(v=>v&&v!=='0')||'';
+      if(qty&&qty!=='0') items.push({name:row,qty});
+    } else if(cols&&cols!=='0'){
+      items.push({name:row,qty:cols});
+    }
+  }
+  return items;
+}
+
+function toggleSection(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
 function renderMain(id){
   const deal=deals.find(d=>d.id===id);if(!deal) return;
   const idx=si(deal.current_step);const curStep=ALL[idx];const isLast=idx===ALL.length-1;
@@ -722,11 +832,13 @@ function renderMain(id){
   const lPipe=LEASING.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
   const oPipe=OPS.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
   const logHtml=logs.length?logs.map(l=>`<div class="log-entry"><span class="log-time">${fmtTime(l.created_at)}</span><span class="log-role">[${l.actor_role}]</span><span>${l.action}</span></div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0">No activity yet.</div>';
+  const answersHtml=renderAnswers(deal.jotform_answers);
+
   document.getElementById('main-panel').innerHTML=`
     <div class="deal-hdr">
       <div>
-        <div class="deal-hdr-name">${deal.first_name} ${deal.last_name}</div>
-        <div class="deal-hdr-meta">${deal.email} · ${deal.phone||'—'} · ${deal.deal_type}</div>
+        <div class="deal-hdr-name">${deal.first_name} ${deal.last_name}${deal.store_name?' — '+deal.store_name:''}</div>
+        <div class="deal-hdr-meta">${deal.email} · ${deal.phone||'—'} · ${deal.purchase_type||deal.deal_type}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         ${stepPill(deal)}
@@ -735,28 +847,12 @@ function renderMain(id){
       </div>
     </div>
     <div class="prog-bar" style="height:5px;margin-bottom:1rem"><div class="prog-fill" style="width:${pct(deal)}%"></div></div>
-    <div class="info-grid">
-      <div class="info-cell"><div class="lbl">Store name</div><div class="val">${deal.store_name||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Legal business name</div><div class="val">${deal.legal_business_name||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Submitted</div><div class="val">${fmtDate(deal.created_at)}</div></div>
-      <div class="info-cell"><div class="lbl">Contact phone</div><div class="val">${deal.phone||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Store phone</div><div class="val">${deal.store_phone||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Address</div><div class="val">${deal.address||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Sales rep</div><div class="val">${deal.sales_rep||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">ROM</div><div class="val">${deal.rom||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Coffee program</div><div class="val">${deal.coffee_program||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Purchase type</div><div class="val">${deal.purchase_type||deal.deal_type||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Total EQ cost</div><div class="val">${deal.total_eq_cost?'$'+deal.total_eq_cost:'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Target install</div><div class="val">${deal.target_install_date||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Distributor</div><div class="val">${deal.parent_distributor||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Graphics package</div><div class="val">${deal.graphics_package||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Emergency install</div><div class="val">${deal.emergency_install==='Yes'?'⚡ Yes':'No'}</div></div>
-      ${deal.notes?`<div class="info-cell" style="grid-column:1/-1"><div class="lbl">Notes</div><div class="val">${deal.notes}</div></div>`:''}
-    </div>
+
     <div class="phase-lbl">📝 Leasing phase</div>
     <div class="pipeline">${lPipe}</div>
     <div class="phase-lbl">⚙️ Operations phase</div>
     <div class="pipeline">${oPipe}</div>
+
     <div class="action-box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <div class="action-title">${curStep.icon} Current step: ${curStep.label}</div>
@@ -773,7 +869,15 @@ function renderMain(id){
             </div>`
           :`<div style="font-size:13px;color:var(--green-text);margin-top:.4rem;font-weight:500">🎉 All 13 steps complete. Deal closed!</div>`}
     </div>
-    <div class="log-section">
+
+    <div style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <div class="log-title">Submission data</div>
+      </div>
+      ${answersHtml}
+    </div>
+
+    <div class="log-section" style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
       <div class="log-title">Activity log</div>
       <div class="log-box">${logHtml}</div>
     </div>`;
