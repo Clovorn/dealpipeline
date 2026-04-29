@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deal Pipeline Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --bg:#ffffff; --bg2:#f5f5f4; --bg3:#eeede8;
+    --text:#1a1a18; --text2:#5f5e5a; --text3:#888780;
+    --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.25);
+    --blue-bg:#e6f1fb; --blue-text:#0c447c; --blue-border:#85b7eb;
+    --amber-bg:#faeeda; --amber-text:#633806; --amber-border:#ef9f27;
+    --green-bg:#eaf3de; --green-text:#27500a; --green-border:#97c459;
+    --red-bg:#fcebeb; --red-text:#791f1f; --red-border:#f09595;
+    --radius:8px; --radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1c1c1a; --bg2:#2a2a27; --bg3:#222220;
+      --text:#f0ede8; --text2:#b4b2a9; --text3:#888780;
+      --border:rgba(255,255,255,0.1); --border2:rgba(255,255,255,0.22);
+      --blue-bg:#042c53; --blue-text:#b5d4f4; --blue-border:#185fa5;
+      --amber-bg:#412402; --amber-text:#fac775; --amber-border:#854f0b;
+      --green-bg:#173404; --green-text:#c0dd97; --green-border:#3b6d11;
+      --red-bg:#501313; --red-text:#f7c1c1; --red-border:#a32d2d;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+  .shell{max-width:1200px;margin:0 auto;padding:0 1.5rem 3rem}
+  /* Topbar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:0.5px solid var(--border);margin-bottom:1rem;background:var(--bg3);position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
+  .topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .wordmark{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-.02em}
+  .pill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .pill-blue{background:var(--blue-bg);color:var(--blue-text)}
+  .pill-amber{background:var(--amber-bg);color:var(--amber-text)}
+  .pill-green{background:var(--green-bg);color:var(--green-text)}
+  .pill-gray{background:var(--bg2);color:var(--text2)}
+  .pill-red{background:var(--red-bg);color:var(--red-text)}
+  .role-tabs{display:flex;gap:4px}
+  .rtab{font-size:12px;padding:5px 14px;border:0.5px solid var(--border);border-radius:999px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
+  .rtab.active{background:var(--bg);border-color:var(--border2);color:var(--text);font-weight:500}
+  .topbar-right{display:flex;align-items:center;gap:8px}
+  .settings-btn{font-size:12px;padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
+  .settings-btn:hover{background:var(--bg2)}
+  /* Toolbar */
+  .toolbar{display:flex;align-items:center;justify-content:flex-end;padding:.5rem 0;margin-bottom:.9rem}
+  /* Notice */
+  .notice-bar{min-height:0;margin-bottom:.6rem}
+  .notice{font-size:12px;padding:8px 13px;border-radius:var(--radius)}
+  .n-warn{background:var(--amber-bg);color:var(--amber-text)}
+  .n-info{background:var(--blue-bg);color:var(--blue-text)}
+  .n-ok{background:var(--green-bg);color:var(--green-text)}
+  .n-err{background:var(--red-bg);color:var(--red-text)}
+  /* Metrics */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem}
+  .metric{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.8rem 1rem}
+  .metric-label{font-size:11px;color:var(--text2);margin-bottom:3px}
+  .metric-value{font-size:26px;font-weight:600;color:var(--text)}
+  /* Filters */
+  .filters{display:flex;gap:7px;margin-bottom:.8rem;flex-wrap:wrap}
+  input,select,textarea{font-family:inherit;font-size:13px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue-border);box-shadow:0 0 0 3px rgba(55,138,221,.15)}
+  /* Layout */
+  .layout{display:grid;grid-template-columns:280px 1fr;gap:12px;align-items:start}
+  .sidebar{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 260px);overflow-y:auto}
+  .deal-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.7rem .9rem;cursor:pointer;transition:border-color .12s}
+  .deal-card:hover{border-color:var(--border2)}
+  .deal-card.selected{border:1.5px solid var(--blue-border)}
+  .deal-name{font-size:13px;font-weight:500;color:var(--text)}
+  .deal-meta{font-size:11px;color:var(--text3);margin-top:1px}
+  .deal-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+  .prog-bar{height:3px;background:var(--bg2);border-radius:2px;margin-top:6px;overflow:hidden}
+  .prog-fill{height:100%;border-radius:2px;background:#378add;transition:width .3s}
+  /* Main panel */
+  .main{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.4rem}
+  .deal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem;padding-bottom:.9rem;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:8px}
+  .deal-hdr-name{font-size:18px;font-weight:600;color:var(--text)}
+  .deal-hdr-meta{font-size:12px;color:var(--text3);margin-top:3px}
+  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+  .info-cell .lbl{font-size:11px;color:var(--text2);margin-bottom:2px}
+  .info-cell .val{font-size:13px;font-weight:500;color:var(--text)}
+  .phase-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin:.9rem 0 6px}
+  .pipeline{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:6px;margin-bottom:.3rem}
+  .pipe-step{display:flex;flex-direction:column;align-items:center;min-width:70px;position:relative}
+  .pipe-step+.pipe-step::before{content:'';position:absolute;top:13px;left:calc(-50%);width:100%;height:1px;background:var(--border);z-index:0}
+  .pipe-dot{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:13px;position:relative;z-index:1;flex-shrink:0}
+  .pipe-dot.done{background:#eaf3de;border-color:#639922}
+  .pipe-dot.cur{background:var(--blue-bg);border:2px solid var(--blue-border);box-shadow:0 0 0 4px rgba(55,138,221,.12)}
+  .pipe-dot.locked{opacity:.3}
+  .pipe-name{font-size:9px;color:var(--text3);text-align:center;margin-top:4px;line-height:1.25;max-width:68px}
+  .pipe-name.cur{color:var(--blue-text);font-weight:600}
+  .pipe-name.done{color:#3b6d11}
+  .action-box{background:var(--bg2);border-radius:var(--radius-lg);padding:1rem 1.1rem;margin-top:.7rem}
+  .action-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+  .action-desc{font-size:12px;color:var(--text2);margin-bottom:.8rem}
+  .action-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:.7rem}
+  .log-section{margin-top:1rem}
+  .log-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+  .log-box{max-height:140px;overflow-y:auto}
+  .log-entry{font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border);color:var(--text2);display:flex;gap:10px}
+  .log-time{color:var(--text3);flex-shrink:0;font-size:10px;min-width:110px}
+  .log-role{color:var(--text3);flex-shrink:0;min-width:60px}
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;color:var(--text3);font-size:13px;gap:10px}
+  /* Buttons */
+  .btn{font-size:12px;padding:6px 13px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;font-family:inherit}
+  .btn:hover{background:var(--bg2)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:var(--blue-bg);color:var(--blue-text);border-color:var(--blue-border)}
+  .btn-primary:hover{opacity:.85}
+  .btn-green{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
+  .btn-green:hover{opacity:.85}
+  .btn-red{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+  .btn-sm{font-size:11px;padding:4px 9px}
+  /* Modals */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem}
+  .modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border2);padding:1.4rem;width:100%;max-width:540px;max-height:90vh;overflow-y:auto}
+  .modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;padding-bottom:.7rem;border-bottom:0.5px solid var(--border)}
+  .modal-title{font-size:15px;font-weight:600;color:var(--text)}
+  .close-btn{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;padding:2px 6px;line-height:1}
+  .field-label{font-size:11px;color:var(--text2);margin:.8rem 0 3px;font-weight:500;display:block}
+  .field-inp{width:100%}
+  textarea.field-inp{resize:vertical;min-height:140px;line-height:1.65}
+  .modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:.9rem;border-top:0.5px solid var(--border)}
+  /* Settings page */
+  .page{display:none;min-height:100vh;background:var(--bg3)}
+  .page.active{display:block}
+  .settings-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;max-width:520px;margin:2rem auto}
+  .settings-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:.3rem}
+  .settings-sub{font-size:12px;color:var(--text2);margin-bottom:1.5rem}
+  .settings-section{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin:1.2rem 0 .5rem;padding-top:1rem;border-top:0.5px solid var(--border)}
+  .settings-section:first-of-type{border-top:none;margin-top:0;padding-top:0}
+  .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  .dot-green{background:#639922}
+  .dot-red{background:#a32d2d}
+  .dot-gray{background:var(--text3)}
+  /* Lock screen */
+  .lock-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg3)}
+  .lock-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:360px;text-align:center}
+  .lock-icon{font-size:36px;margin-bottom:1rem}
+  .lock-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:.4rem}
+  .lock-sub{font-size:12px;color:var(--text2);margin-bottom:1.2rem}
+  .lock-input{width:100%;margin-bottom:.8rem;text-align:center;letter-spacing:.1em}
+  .lock-err{font-size:12px;color:var(--red-text);margin-top:.4rem;display:none}
+  @media(max-width:700px){.layout{grid-template-columns:1fr}.info-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ MAIN DASHBOARD PAGE ═══════════════════════════════ -->
+<div id="page-main" class="page active">
+<div class="shell">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="wordmark">Deal Pipeline</span>
+      <span class="pill pill-blue">Supabase</span>
+      <span id="live-badge" class="pill pill-amber">connecting…</span>
+      <span id="sync-badge" class="pill pill-green" style="display:none">● live</span>
+    </div>
+    <div class="role-tabs">
+      <button class="rtab active" onclick="setRole('admin',this)">Admin</button>
+      <button class="rtab" onclick="setRole('sales',this)">Sales</button>
+      <button class="rtab" onclick="setRole('leasing',this)">Leasing</button>
+      <button class="rtab" onclick="setRole('ops',this)">Operations</button>
+    </div>
+    <div class="topbar-right">
+      <button class="settings-btn" onclick="showSettings()">⚙ Settings</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="openNewDeal()">+ New deal</button>
+      <button class="btn" onclick="triggerJotformSync()" id="sync-btn" style="display:none">↻ Sync Jotform</button>
+    </div>
+  </div>
+
+  <div class="notice-bar" id="notice-bar"></div>
+
+  <div class="metrics" id="metrics">
+    <div class="metric"><div class="metric-label">Total deals</div><div class="metric-value">—</div></div>
+    <div class="metric"><div class="metric-label">In leasing</div><div class="metric-value" style="color:#378add">—</div></div>
+    <div class="metric"><div class="metric-label">In ops</div><div class="metric-value" style="color:#ba7517">—</div></div>
+    <div class="metric"><div class="metric-label">Funded</div><div class="metric-value" style="color:#639922">—</div></div>
+    <div class="metric"><div class="metric-label">Complete</div><div class="metric-value" style="color:#888780">—</div></div>
+  </div>
+
+  <div class="filters">
+    <input placeholder="Search by name or email…" style="width:210px" oninput="searchQ=this.value;renderSidebar()"/>
+    <select onchange="phaseFilter=this.value;renderSidebar()">
+      <option value="">All stages</option>
+      <option>Leasing</option>
+      <option>Operations</option>
+      <option>Complete</option>
+    </select>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar" id="sidebar">
+      <div style="font-size:12px;color:var(--text3);padding:.5rem">Loading…</div>
+    </div>
+    <div class="main" id="main-panel">
+      <div class="empty-state">
+        <div style="font-size:40px">📋</div>
+        <div>Select a deal to view its pipeline</div>
+        <div style="font-size:11px;color:var(--text3)">Configure Jotform in Settings to sync submissions</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════ SETTINGS LOCK SCREEN ═══════════════════════════════ -->
+<div id="page-lock" class="page">
+<div class="lock-screen">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Settings</div>
+    <div class="lock-sub">Enter the admin password to access settings</div>
+    <input class="field-inp lock-input" type="password" id="lock-password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()"/>
+    <button class="btn btn-primary" style="width:100%;margin-top:.3rem" onclick="checkPassword()">Unlock</button>
+    <div class="lock-err" id="lock-err">Incorrect password. Try again.</div>
+    <button class="btn" style="width:100%;margin-top:.8rem" onclick="showPage('main')">← Back to dashboard</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════ SETTINGS PAGE ═══════════════════════════════ -->
+<div id="page-settings" class="page">
+<div class="shell" style="max-width:600px">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="wordmark">Settings</span>
+    </div>
+    <button class="settings-btn" onclick="showPage('main')">← Back to dashboard</button>
+  </div>
+
+  <div class="notice-bar" id="settings-notice-bar"></div>
+
+  <div class="settings-card">
+    <div class="settings-title">Jotform Integration</div>
+    <div class="settings-sub">Connect your Jotform account to automatically sync new submissions into the pipeline.</div>
+
+    <div class="settings-section">API Connection</div>
+    <label class="field-label">Jotform API Key</label>
+    <input class="field-inp" type="password" id="s-apikey" placeholder="Paste your Jotform API key…"/>
+    <div style="font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5">
+      Go to <strong>Jotform → Account → API</strong> and create a key with <strong>Full Access</strong> permissions. Read-only or restricted keys will not work.
+    </div>
+    <div style="margin-top:.6rem;display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="testAndSaveApiKey()">Test & save key</button>
+      <a href="https://www.jotform.com/myaccount/api" target="_blank" class="btn">Open Jotform API settings ↗</a>
+    </div>
+    <div id="api-status" style="font-size:12px;color:var(--text2);margin-top:.6rem"></div>
+
+    <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="syncNow()" id="sync-now-btn" disabled>↻ Sync submissions now</button>
+      <button class="btn" onclick="clearJotformSettings()">Clear settings</button>
+    </div>
+
+    <div class="settings-section">Current Status</div>
+    <div id="current-status" style="font-size:13px;color:var(--text2)">Loading…</div>
+  </div>
+
+  <div class="settings-card">
+    <div class="settings-title">Admin Password</div>
+    <div class="settings-sub">Change the password required to access this settings page.</div>
+    <label class="field-label">Current password</label>
+    <input class="field-inp" type="password" id="pw-current" placeholder="Current password"/>
+    <label class="field-label">New password</label>
+    <input class="field-inp" type="password" id="pw-new" placeholder="New password"/>
+    <label class="field-label">Confirm new password</label>
+    <input class="field-inp" type="password" id="pw-confirm" placeholder="Confirm new password"/>
+    <div style="margin-top:.8rem">
+      <button class="btn btn-primary" onclick="changePassword()">Update password</button>
+    </div>
+    <div id="pw-msg" style="font-size:12px;margin-top:.5rem"></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════ EMAIL MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="email-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="email-modal-title">Compose email</div>
+      <button class="close-btn" onclick="closeEmailModal()">✕</button>
+    </div>
+    <label class="field-label">To</label>
+    <input class="field-inp" id="m-to" readonly style="background:var(--bg2)"/>
+    <label class="field-label">Subject</label>
+    <input class="field-inp" id="m-subj"/>
+    <label class="field-label">Message — edit before sending</label>
+    <textarea class="field-inp" id="m-body"></textarea>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeEmailModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="copyAndLog()">Copy email & log</button>
+      <button class="btn btn-green" id="advance-btn" onclick="advanceAfterEmail()">Copy & advance step →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ NEW DEAL MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="new-deal-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">New deal</div>
+      <button class="close-btn" onclick="document.getElementById('new-deal-modal').style.display='none'">✕</button>
+    </div>
+    <label class="field-label">First name *</label><input class="field-inp" id="nd-first" placeholder="First name"/>
+    <label class="field-label">Last name</label><input class="field-inp" id="nd-last" placeholder="Last name"/>
+    <label class="field-label">Email *</label><input class="field-inp" id="nd-email" type="email" placeholder="customer@email.com"/>
+    <label class="field-label">Phone</label><input class="field-inp" id="nd-phone" placeholder="(555) 000-0000"/>
+    <label class="field-label">Deal type</label>
+    <select class="field-inp" id="nd-type">
+      <option>Equipment Lease</option>
+      <option>Service Contract</option>
+      <option>Financing Application</option>
+      <option>Equipment Rental</option>
+    </select>
+    <div class="modal-foot">
+      <button class="btn" onclick="document.getElementById('new-deal-modal').style.display='none'">Cancel</button>
+      <button class="btn btn-green" onclick="saveNewDeal()">Create deal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── Supabase ─── */
+const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWxtZXF1d2p4dnJtZ3BsdGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODEyNzMsImV4cCI6MjA5MzA1NzI3M30.bT56CL9oK9HcRBQTry3G5kBqbseuGDaxKvqyDkCczHM';
+const DEFAULT_PASSWORD = 'pipeline2024';
+
+/* ─── Pipeline steps ─── */
+const LEASING = [
+  {id:'submitted',label:'Submitted',icon:'📥',action:'Review the submission and send the credit application to the customer.',subj:'Your Credit Application',body:(d)=>`Dear ${d.first_name},\n\nThank you for your interest in ${d.deal_type}! To move forward, please complete and return the attached credit application at your earliest convenience.\n\nFeel free to reach out with any questions.\n\nBest regards,\nThe Leasing Team`},
+  {id:'credit_sent',label:'Credit App Sent',icon:'📤',action:'Credit application sent. Awaiting return from customer.',subj:'Following Up — Credit Application',body:(d)=>`Dear ${d.first_name},\n\nWe wanted to follow up on the credit application we sent over. Please let us know if you need any assistance completing it.\n\nBest regards,\nThe Leasing Team`},
+  {id:'credit_received',label:'Credit Received',icon:'📩',action:'Credit application received. Begin internal review and approval.',subj:'Credit Application Received',body:(d)=>`Dear ${d.first_name},\n\nWe have received your completed credit application and it is currently under review. We will be in touch shortly with a decision.\n\nBest regards,\nThe Leasing Team`},
+  {id:'credit_approved',label:'Credit Approved',icon:'✅',action:'Credit approved! Send lease paperwork to customer for signatures.',subj:'Congratulations — Credit Approved!',body:(d)=>`Dear ${d.first_name},\n\nGreat news — your credit application has been approved! Please review and sign the attached lease documents to move forward with your ${d.deal_type}.\n\nBest regards,\nThe Leasing Team`},
+  {id:'paperwork_sent',label:'Paperwork Sent',icon:'📋',action:'Paperwork sent to customer. Waiting for signed documents.',subj:'Reminder — Lease Documents Awaiting Signature',body:(d)=>`Dear ${d.first_name},\n\nA friendly reminder that your lease documents are awaiting your signature. Please return them at your earliest convenience so we can proceed.\n\nBest regards,\nThe Leasing Team`},
+  {id:'paperwork_received',label:'Paperwork Received',icon:'📂',action:'Signed documents received. Process funding to complete leasing phase.',subj:'Documents Received — Processing Your Funding',body:(d)=>`Dear ${d.first_name},\n\nWe have received your signed documents and are now processing your funding. We will notify you as soon as this step is complete.\n\nBest regards,\nThe Leasing Team`},
+  {id:'funded',label:'Funded',icon:'💰',action:'Deal funded! Leasing phase complete. Hand off to Operations.',subj:'Your Lease is Funded!',body:(d)=>`Dear ${d.first_name},\n\nExcellent news — your ${d.deal_type} has been fully funded! Our operations team will be in touch shortly to begin your equipment setup and installation.\n\nThank you for choosing us!\n\nBest regards,\nThe Leasing Team`},
+];
+const OPS = [
+  {id:'cust_setup',label:'Customer Setup',icon:'👤',action:'Set up customer account in internal systems.',subj:'Your Account is Being Set Up',body:(d)=>`Dear ${d.first_name},\n\nWe are setting up your account in our systems. You will receive your account details shortly.\n\nBest regards,\nOperations Team`},
+  {id:'equip_ordered',label:'Equipment Ordered',icon:'🛒',action:'Order equipment for the customer.',subj:'Equipment Order Placed',body:(d)=>`Dear ${d.first_name},\n\nYour equipment has been ordered and is being prepared. We will keep you updated on its status and estimated delivery date.\n\nBest regards,\nOperations Team`},
+  {id:'equip_received',label:'Equipment Received',icon:'📦',action:'Equipment arrived. Coordinate installation scheduling.',subj:'Equipment Arrived — Scheduling Installation',body:(d)=>`Dear ${d.first_name},\n\nYour equipment has arrived at our facility. We will be reaching out shortly to schedule your installation at a convenient time.\n\nBest regards,\nOperations Team`},
+  {id:'install_scheduled',label:'Install Scheduled',icon:'📅',action:'Installation scheduled. Notify distributor and prep site.',subj:'Your Installation is Scheduled',body:(d)=>`Dear ${d.first_name},\n\nYour installation has been confirmed. Please ensure the site is accessible on the scheduled date. Our team will arrive promptly and complete the work efficiently.\n\nBest regards,\nOperations Team`},
+  {id:'dist_notified',label:'Distributor Notified',icon:'📡',action:'Distributor notified. Final prep for installation.',subj:'Installation Preparation Underway',body:(d)=>`Dear ${d.first_name},\n\nAll parties have been notified and preparation for your installation is fully underway. We look forward to seeing you soon!\n\nBest regards,\nOperations Team`},
+  {id:'installed',label:'Installation',icon:'🔧',action:'Installation complete. Verify and confirm with customer.',subj:'Installation Complete',body:(d)=>`Dear ${d.first_name},\n\nWe are pleased to let you know that your installation has been completed successfully. Please review everything and reach out if you have any questions.\n\nBest regards,\nOperations Team`},
+  {id:'complete',label:'Complete',icon:'🏁',action:'Deal fully complete! All 13 steps finished.',subj:'Welcome Aboard — Setup Complete!',body:(d)=>`Dear ${d.first_name},\n\nYour setup is 100% complete! We are thrilled to have you as a customer and look forward to supporting you. Don't hesitate to reach out anytime.\n\nThank you for your business!\n\nWarmly,\nThe Team`},
+];
+const ALL = [...LEASING,...OPS];
+const ALL_IDS = ALL.map(s=>s.id);
+
+/* ─── State ─── */
+let sb=null, deals=[], activityMap={}, selectedId=null;
+let currentRole='admin', phaseFilter='', searchQ='';
+let modalDealId=null, modalAdvance=false;
+
+/* ─── Helpers ─── */
+const si = id => ALL_IDS.indexOf(id);
+const phase = id => LEASING.find(s=>s.id===id)?'leasing':'ops';
+const pct = deal => Math.round((si(deal.current_step)+1)/ALL.length*100);
+const stepOf = id => ALL.find(s=>s.id===id);
+const fmtDate = ts => ts?new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+const fmtTime = ts => ts?new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+
+function notice(msg,type='info',bar='notice-bar'){
+  const el=document.getElementById(bar);
+  if(!el) return;
+  const t=type==='error'?'err':type==='warn'?'warn':type==='ok'?'ok':'info';
+  el.innerHTML=`<div class="notice n-${t}">${msg}</div>`;
+  setTimeout(()=>{ if(el) el.innerHTML=''; },6000);
+}
+
+/* ─── Page navigation ─── */
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  window.scrollTo(0,0);
+}
+function showSettings(){
+  const pw=localStorage.getItem('settings_pw')||DEFAULT_PASSWORD;
+  // If already unlocked this session skip lock
+  if(sessionStorage.getItem('settings_unlocked')==='true'){
+    showPage('settings');
+    refreshSettingsStatus();
+  } else {
+    showPage('lock');
+    setTimeout(()=>document.getElementById('lock-password').focus(),100);
+  }
+}
+function checkPassword(){
+  const input=document.getElementById('lock-password').value;
+  const stored=localStorage.getItem('settings_pw')||DEFAULT_PASSWORD;
+  if(input===stored){
+    sessionStorage.setItem('settings_unlocked','true');
+    document.getElementById('lock-password').value='';
+    document.getElementById('lock-err').style.display='none';
+    showPage('settings');
+    refreshSettingsStatus();
+  } else {
+    document.getElementById('lock-err').style.display='block';
+  }
+}
+
+/* ─── Settings ─── */
+function refreshSettingsStatus(){
+  const key=localStorage.getItem('jf_api_key')||'';
+  const el=document.getElementById('current-status');
+  if(key) document.getElementById('s-apikey').value=key;
+  document.getElementById('sync-now-btn').disabled=!key;
+  el.innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div><span class="status-dot ${key?'dot-green':'dot-red'}"></span>API Key: ${key?'<strong>Saved</strong>':'Not set'}</div>
+      <div><span class="status-dot dot-green"></span>Form: <strong>New Deal Sheet</strong> <span style="color:var(--text3);font-size:11px">(ID: ${JOTFORM_FORM_ID})</span></div>
+      <div><span class="status-dot dot-green"></span>Supabase: <strong>Connected</strong></div>
+    </div>`;
+}
+
+function clearJotformSettings(){
+  if(!confirm('Clear Jotform API key?')) return;
+  localStorage.removeItem('jf_api_key');
+  localStorage.removeItem('jf_form_id');
+  document.getElementById('s-apikey').value='';
+  document.getElementById('api-status').textContent='';
+  document.getElementById('sync-now-btn').disabled=true;
+  notice('Jotform settings cleared.','warn','settings-notice-bar');
+  refreshSettingsStatus();
+}
+
+async function syncNow(){
+  const key=localStorage.getItem('jf_api_key');
+  if(!key){ notice('API key must be saved first.','warn','settings-notice-bar'); return; }
+  notice('Syncing submissions…','info','settings-notice-bar');
+  const added=await doSync(key, JOTFORM_FORM_ID);
+  notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok','settings-notice-bar');
+  refreshSettingsStatus();
+}
+  const key=document.getElementById('s-apikey').value.trim();
+  if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
+  document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
+  try{
+    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}%2Fsubmissions&apiKey=${encodeURIComponent(key)}`);
+    const data=await res.json();
+    if(data.responseCode===200){
+      localStorage.setItem('jf_api_key',key);
+      localStorage.setItem('jf_form_id', JOTFORM_FORM_ID);
+      const count=data.content?data.content.length:0;
+      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — '+count+' submission'+(count!==1?'s':'')+' ready to import</span>';
+      document.getElementById('sync-now-btn').disabled=false;
+      document.getElementById('sync-btn').style.display='inline-block';
+      notice('API key saved! Click "Sync submissions now" to import.','ok','settings-notice-bar');
+    } else if(data.responseCode===401||data.responseCode===403){
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized — make sure your key has Full Access permissions.</span>';
+    } else {
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Error ('+data.responseCode+'): '+data.message+'</span>';
+    }
+  }catch(e){
+    document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Connection failed: '+e.message+'</span>';
+  }
+}
+
+async function syncNow_settings(){ await syncNow(); } // alias
+
+async function triggerJotformSync(){
+  const key=localStorage.getItem('jf_api_key');
+  if(!key){ notice('Configure Jotform in Settings first.','warn'); return; }
+  notice('Syncing Jotform submissions…','info');
+  const added=await doSync(key, JOTFORM_FORM_ID);
+  notice(`Sync complete — ${added} new submission${added!==1?'s':''} added.`,'ok');
+}
+
+async function doSync(key,formId){
+  try{
+    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${formId}%2Fsubmissions&apiKey=${encodeURIComponent(key)}`);
+    const data=await res.json();
+    if(data.responseCode!==200) return 0;
+    let added=0;
+    for(const sub of data.content){
+      const ans=sub.answers||{};
+      // Contact info
+      const contactName=xfByQid(ans,'13')||xf(ans,'contact name')||'';
+      const nameParts=contactName.split(' ');
+      const fn=nameParts[0]||'Customer';
+      const ln=nameParts.slice(1).join(' ')||'';
+      const em=xfByQid(ans,'22')||xf(ans,'email')||'';
+      const ph=xfByQid(ans,'12')||xf(ans,'phone')||'';
+      // Store info
+      const storeName=xfByQid(ans,'15')||'';
+      const storePhone=xfByQid(ans,'16')||'';
+      const legalName=xfByQid(ans,'144')||'';
+      const addrObj=ans['21']&&ans['21'].answer;
+      const address=addrObj?[addrObj.addr_line1,addrObj.city,addrObj.state,addrObj.postal].filter(Boolean).join(', '):'';
+      // Deal info
+      const salesRep=xfByQid(ans,'108')||'';
+      const rom=xfByQid(ans,'99')||'';
+      const purchaseType=xfByQid(ans,'48')||'Equipment Lease';
+      const totalEqCost=xfByQid(ans,'4')||'';
+      const distributor=xfByQid(ans,'23')||'';
+      const targetInstall=xfByQid(ans,'49')||'';
+      const graphicsPkg=xfByQid(ans,'36')||'';
+      const emergency=xfByQid(ans,'17')||'No';
+      const chainStore=xfByQid(ans,'18')||'No';
+      const notes=xfByQid(ans,'113')||'';
+      const coffeeProgram=xfByQid(ans,'139')||'';
+      const subGroup=xfByQid(ans,'137')||'';
+      const custAccount=xfByQid(ans,'130')||'';
+      // Equipment - summarize from payment field
+      const equipAns=ans['3']&&ans['3'].answer;
+      const equipSummary=equipAns?Object.keys(equipAns).slice(0,3).join(', '):'See form';
+
+      const {data:ex}=await sb.from('deals').select('id').eq('jotform_submission_id',sub.id).maybeSingle();
+      if(!ex){
+        await sb.from('deals').insert({
+          jotform_submission_id:sub.id,
+          first_name:fn, last_name:ln, email:em, phone:ph,
+          store_name:storeName, store_phone:storePhone,
+          legal_business_name:legalName, address,
+          sales_rep:salesRep, rom, chain_store:chainStore,
+          purchase_type:purchaseType, total_eq_cost:totalEqCost,
+          parent_distributor:distributor, target_install_date:targetInstall,
+          graphics_package:graphicsPkg, emergency_install:emergency,
+          equipment_selection:equipSummary, notes,
+          coffee_program:coffeeProgram, sub_group:subGroup,
+          customer_account:custAccount,
+          deal_type:purchaseType||'Equipment Lease',
+          current_step:'submitted', phase:'leasing',
+          jotform_answers:ans
+        });
+        added++;
+      }
+    }
+    return added;
+  }catch(e){ console.error('Sync error:',e); return 0; }
+}
+
+// Extract answer by question ID (most reliable for Jotform)
+function xfByQid(ans,qid){
+  const a=ans[qid];
+  if(!a||!a.answer) return '';
+  if(typeof a.answer==='string') return a.answer.trim();
+  if(typeof a.answer==='object') return Object.values(a.answer).filter(Boolean).join(', ').trim();
+  return '';
+}
+
+// Fallback: extract by field name keyword
+function xf(ans,field){
+  for(const k in ans){const a=ans[k];const nm=(a.name||'').toLowerCase();if(nm.includes(field)&&a.answer){if(typeof a.answer==='string')return a.answer;if(typeof a.answer==='object')return Object.values(a.answer).filter(Boolean).join(' ');}}return null;
+}
+
+// Auto-poll every 5 minutes if Jotform is configured
+function startAutoPoll(){
+  const key=localStorage.getItem('jf_api_key');
+  if(!key) return;
+  setInterval(async()=>{
+    const added=await doSync(key, JOTFORM_FORM_ID);
+    if(added>0) notice(`Auto-sync: ${added} new submission${added!==1?'s':''} added!`,'ok');
+  }, 5*60*1000);
+}
+
+function changePassword(){
+  const cur=document.getElementById('pw-current').value;
+  const nw=document.getElementById('pw-new').value;
+  const conf=document.getElementById('pw-confirm').value;
+  const stored=localStorage.getItem('settings_pw')||DEFAULT_PASSWORD;
+  const msg=document.getElementById('pw-msg');
+  if(cur!==stored){ msg.style.color='var(--red-text)'; msg.textContent='Current password is incorrect.'; return; }
+  if(nw.length<6){ msg.style.color='var(--red-text)'; msg.textContent='New password must be at least 6 characters.'; return; }
+  if(nw!==conf){ msg.style.color='var(--red-text)'; msg.textContent='New passwords do not match.'; return; }
+  localStorage.setItem('settings_pw',nw);
+  msg.style.color='var(--green-text)';
+  msg.textContent='Password updated successfully!';
+  document.getElementById('pw-current').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-confirm').value='';
+}
+
+/* ─── Role ─── */
+function setRole(r,btn){
+  currentRole=r;
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSidebar();
+  if(selectedId) renderMain(selectedId);
+}
+
+/* ─── Supabase init ─── */
+async function init(){
+  sb=supabase.createClient(SB_URL,SB_KEY);
+  document.getElementById('live-badge').textContent='● connected';
+  document.getElementById('live-badge').className='pill pill-green';
+  await loadDeals();
+  sb.channel('deals-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'deals'},()=>loadDeals())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'activity_log'},async p=>{
+      const did=p.new.deal_id;
+      const {data}=await sb.from('activity_log').select('*').eq('deal_id',did).order('created_at',{ascending:false}).limit(30);
+      if(data) activityMap[did]=data;
+      if(selectedId===did) renderMain(did);
+    })
+    .subscribe();
+  document.getElementById('sync-badge').style.display='inline';
+  // Show sync button if jotform configured
+  if(localStorage.getItem('jf_form_id')) document.getElementById('sync-btn').style.display='inline-block';
+  // Start auto-polling for new submissions
+  startAutoPoll();
+}
+
+async function loadDeals(){
+  const{data,error}=await sb.from('deals').select('*').order('created_at',{ascending:false});
+  if(error){ notice('Error: '+error.message,'error'); return; }
+  deals=data||[];
+  renderMetrics();
+  renderSidebar();
+  if(selectedId&&deals.find(d=>d.id===selectedId)) renderMain(selectedId);
+}
+
+async function loadActivity(dealId){
+  const{data}=await sb.from('activity_log').select('*').eq('deal_id',dealId).order('created_at',{ascending:false}).limit(30);
+  activityMap[dealId]=data||[];
+}
+
+/* ─── Render ─── */
+function renderMetrics(){
+  const t=deals.length,lc=deals.filter(d=>phase(d.current_step)==='leasing').length,oc=deals.filter(d=>phase(d.current_step)==='ops'&&d.current_step!=='complete').length,fc=deals.filter(d=>si(d.current_step)>=si('funded')).length,dc=deals.filter(d=>d.current_step==='complete').length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Total deals</div><div class="metric-value">${t}</div></div>
+    <div class="metric"><div class="metric-label">In leasing</div><div class="metric-value" style="color:#378add">${lc}</div></div>
+    <div class="metric"><div class="metric-label">In ops</div><div class="metric-value" style="color:#ba7517">${oc}</div></div>
+    <div class="metric"><div class="metric-label">Funded</div><div class="metric-value" style="color:#639922">${fc}</div></div>
+    <div class="metric"><div class="metric-label">Complete</div><div class="metric-value" style="color:#888780">${dc}</div></div>`;
+}
+
+function stepPill(deal){
+  const s=stepOf(deal.current_step);const p=phase(deal.current_step);
+  const cls=deal.current_step==='complete'?'pill-gray':p==='leasing'?'pill-blue':'pill-amber';
+  return`<span class="pill ${cls}" style="font-size:10px">${s?s.icon+' '+s.label:'—'}</span>`;
+}
+
+function renderSidebar(){
+  let list=deals;
+  if(searchQ){const q=searchQ.toLowerCase();list=list.filter(d=>(d.first_name+' '+d.last_name).toLowerCase().includes(q)||d.email.toLowerCase().includes(q));}
+  if(phaseFilter==='Leasing') list=list.filter(d=>phase(d.current_step)==='leasing');
+  else if(phaseFilter==='Operations') list=list.filter(d=>phase(d.current_step)==='ops'&&d.current_step!=='complete');
+  else if(phaseFilter==='Complete') list=list.filter(d=>d.current_step==='complete');
+  if(currentRole==='leasing') list=list.filter(d=>phase(d.current_step)==='leasing');
+  else if(currentRole==='ops') list=list.filter(d=>phase(d.current_step)==='ops');
+  document.getElementById('sidebar').innerHTML=list.length
+    ?list.map(d=>`<div class="deal-card${selectedId===d.id?' selected':''}" onclick="selectDeal('${d.id}')">
+        <div class="deal-name">${d.first_name} ${d.last_name}${d.store_name?' — '+d.store_name:''}</div>
+        <div class="deal-meta">${d.email||d.phone||'No contact info'}</div>
+        ${d.sales_rep?`<div class="deal-meta">Rep: ${d.sales_rep}</div>`:''}
+        <div class="deal-foot">${stepPill(d)}<span style="font-size:10px;color:var(--text3)">${fmtDate(d.created_at)}</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct(d)}%"></div></div>
+      </div>`).join('')
+    :'<div style="font-size:12px;color:var(--text3);padding:.5rem">No deals match this view.</div>';
+}
+
+async function selectDeal(id){
+  selectedId=id;renderSidebar();
+  await loadActivity(id);renderMain(id);
+}
+
+function renderAnswers(ans){
+  if(!ans||!Object.keys(ans).length) return '<div style="font-size:12px;color:var(--text3)">No submission data available.</div>';
+
+  // Field groups matching the form structure
+  const groups = [
+    { label:'👤 Customer Information', qids:['108','101','138','131','129','130','109','111','112','124','118','137'] },
+    { label:'🏪 Store Details', qids:['15','144','16','21','125','14','18'] },
+    { label:'📞 Contact', qids:['13','12','22'] },
+    { label:'🚚 Delivery & Distribution', qids:['119','121','122','23','95','103','24','25','57','104','105','139'] },
+    { label:'🔧 Service', qids:['93','99','107','106'] },
+    { label:'💰 Deal Information', qids:['48','4','5','6','7','136','49','50','17','19','140','141','142','143'] },
+    { label:'🎨 Graphics', qids:['94','35','36','145','146','47'] },
+    { label:'📦 Equipment Selected', qids:['3','29','114'] },
+    { label:'📝 Notes', qids:['113'] },
+  ];
+
+  // Matrix qids (huge lists — render as collapsible)
+  const matrixQids = ['33','38','40','41','42','43'];
+
+  let html = '';
+
+  for(const grp of groups){
+    const cells = [];
+    for(const qid of grp.qids){
+      const a = ans[qid];
+      if(!a) continue;
+      const label = a.text||a.name||'Field '+qid;
+      const val = formatAnswer(a);
+      if(!val||val==='—') continue;
+      cells.push(`<div class="info-cell"><div class="lbl">${label}</div><div class="val">${val}</div></div>`);
+    }
+    if(!cells.length) continue;
+    html += `<div style="margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-top:.5rem">${grp.label}</div>
+      <div class="info-grid" style="margin-bottom:0">${cells.join('')}</div>
+    </div>`;
+  }
+
+  // Equipment matrices — collapsible
+  for(const qid of matrixQids){
+    const a = ans[qid];
+    if(!a||!a.answer) continue;
+    const label = a.text||'Equipment';
+    const items = parseMatrix(a.answer);
+    if(!items.length) continue;
+    const uid = 'mat-'+qid;
+    html += `<div style="margin-bottom:.8rem">
+      <div class="phase-lbl" style="margin-top:.5rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="toggleSection('${uid}')">
+        📋 ${label} <span style="font-size:10px;color:var(--text3)">(${items.length} items) ▾</span>
+      </div>
+      <div id="${uid}" style="display:none;margin-top:6px;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg2)">
+            <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border)">Item</th>
+            <th style="padding:6px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border);width:80px">Qty</th>
+          </tr></thead>
+          <tbody>${items.map((it,i)=>`<tr style="background:${i%2===0?'var(--bg)':'var(--bg2)'}">
+            <td style="padding:5px 10px;color:var(--text);border-bottom:0.5px solid var(--border)">${it.name}</td>
+            <td style="padding:5px 10px;color:var(--text);border-bottom:0.5px solid var(--border)">${it.qty}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  return html || '<div style="font-size:12px;color:var(--text3)">No data to display.</div>';
+}
+
+function formatAnswer(a){
+  if(!a.answer) return '—';
+  if(typeof a.answer==='string') return a.answer.trim()||'—';
+  if(typeof a.answer==='object'){
+    // Address object
+    if(a.answer.addr_line1!==undefined){
+      return [a.answer.addr_line1,a.answer.addr_line2,a.answer.city,a.answer.state,a.answer.postal].filter(Boolean).join(', ')||'—';
+    }
+    // Date object
+    if(a.answer.month!==undefined){
+      return [a.answer.month,a.answer.day,a.answer.year].filter(Boolean).join('/')||'—';
+    }
+    // Phone object
+    if(a.answer.area!==undefined){
+      return ['('+a.answer.area+')',a.answer.phone].filter(Boolean).join(' ')||'—';
+    }
+    return Object.values(a.answer).filter(v=>v&&typeof v==='string').join(', ')||'—';
+  }
+  return '—';
+}
+
+function parseMatrix(answer){
+  // Matrix answers come as object of {rowName: {colName: value}}
+  if(typeof answer!=='object') return [];
+  const items=[];
+  for(const row in answer){
+    const cols=answer[row];
+    if(typeof cols==='object'){
+      const qty=cols['Quantity']||cols['quantity']||Object.values(cols).find(v=>v&&v!=='0')||'';
+      if(qty&&qty!=='0') items.push({name:row,qty});
+    } else if(cols&&cols!=='0'){
+      items.push({name:row,qty:cols});
+    }
+  }
+  return items;
+}
+
+function toggleSection(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function renderMain(id){
+  const deal=deals.find(d=>d.id===id);if(!deal) return;
+  const idx=si(deal.current_step);const curStep=ALL[idx];const isLast=idx===ALL.length-1;
+  const canAct=currentRole==='admin'||(currentRole==='leasing'&&phase(deal.current_step)==='leasing')||(currentRole==='ops'&&phase(deal.current_step)==='ops');
+  const isSales=currentRole==='sales';const nextStep=ALL[idx+1];
+  const logs=activityMap[id]||[];
+  const lPipe=LEASING.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
+  const oPipe=OPS.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
+  const logHtml=logs.length?logs.map(l=>`<div class="log-entry"><span class="log-time">${fmtTime(l.created_at)}</span><span class="log-role">[${l.actor_role}]</span><span>${l.action}</span></div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0">No activity yet.</div>';
+  const answersHtml=renderAnswers(deal.jotform_answers);
+
+  document.getElementById('main-panel').innerHTML=`
+    <div class="deal-hdr">
+      <div>
+        <div class="deal-hdr-name">${deal.first_name} ${deal.last_name}${deal.store_name?' — '+deal.store_name:''}</div>
+        <div class="deal-hdr-meta">${deal.email} · ${deal.phone||'—'} · ${deal.purchase_type||deal.deal_type}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        ${stepPill(deal)}
+        <span style="font-size:11px;color:var(--text3)">${pct(deal)}% complete</span>
+        ${!isSales?`<button class="btn btn-sm btn-red" onclick="deleteDeal('${id}')">Delete</button>`:''}
+      </div>
+    </div>
+    <div class="prog-bar" style="height:5px;margin-bottom:1rem"><div class="prog-fill" style="width:${pct(deal)}%"></div></div>
+
+    <div class="phase-lbl">📝 Leasing phase</div>
+    <div class="pipeline">${lPipe}</div>
+    <div class="phase-lbl">⚙️ Operations phase</div>
+    <div class="pipeline">${oPipe}</div>
+
+    <div class="action-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="action-title">${curStep.icon} Current step: ${curStep.label}</div>
+        ${isLast?'<span class="pill pill-green">All done!</span>':''}
+      </div>
+      <div class="action-desc">${curStep.action}</div>
+      ${isSales
+        ?`<div style="font-size:12px;color:var(--text2);margin-top:.5rem;padding:.6rem;background:var(--bg2);border-radius:var(--radius)">Read-only access. Contact Leasing or Operations to advance this deal.</div>`
+        :!isLast
+          ?`<div class="action-row">
+              <button class="btn btn-primary btn-sm" onclick="openEmailModal('${id}',false)">✉ Draft email</button>
+              ${canAct&&nextStep?`<button class="btn btn-green btn-sm" onclick="openEmailModal('${id}',true)">Advance → ${nextStep.icon} ${nextStep.label}</button>`:''}
+              ${!canAct?`<span style="font-size:11px;color:var(--text3)">Switch to the correct role to advance.</span>`:''}
+            </div>`
+          :`<div style="font-size:13px;color:var(--green-text);margin-top:.4rem;font-weight:500">🎉 All 13 steps complete. Deal closed!</div>`}
+    </div>
+
+    <div style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <div class="log-title">Submission data</div>
+      </div>
+      ${answersHtml}
+    </div>
+
+    <div class="log-section" style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
+      <div class="log-title">Activity log</div>
+      <div class="log-box">${logHtml}</div>
+    </div>`;
+}
+
+/* ─── Email modal ─── */
+function openEmailModal(dealId,advance){
+  const deal=deals.find(d=>d.id===dealId);if(!deal) return;
+  const step=stepOf(deal.current_step);
+  modalDealId=dealId;modalAdvance=advance;
+  document.getElementById('email-modal-title').textContent=advance?'Compose & advance to next step':`Compose email — ${step.label}`;
+  document.getElementById('m-to').value=deal.email;
+  document.getElementById('m-subj').value=step.subj;
+  document.getElementById('m-body').value=step.body(deal);
+  const advBtn=document.getElementById('advance-btn');
+  const nextStep=ALL[si(deal.current_step)+1];
+  advBtn.textContent=nextStep?`Copy, log & advance → ${nextStep.label}`:'Copy & log';
+  advBtn.style.display=advance?'inline-block':'none';
+  document.getElementById('email-modal').style.display='flex';
+}
+function closeEmailModal(){ document.getElementById('email-modal').style.display='none'; modalDealId=null; }
+
+async function copyAndLog(){
+  const subj=document.getElementById('m-subj').value;const body=document.getElementById('m-body').value;
+  try{await navigator.clipboard.writeText(`Subject: ${subj}\n\n${body}`);}catch(e){}
+  if(modalDealId&&sb){
+    const deal=deals.find(d=>d.id===modalDealId);
+    await sb.from('email_log').insert({deal_id:modalDealId,step:deal.current_step,subject:subj,body,sent_by_role:currentRole});
+    await sb.from('activity_log').insert({deal_id:modalDealId,actor_role:currentRole,action:`Email copied — "${subj}"`,from_step:deal.current_step});
+  }
+  notice('Email copied to clipboard and logged!','ok');
+  closeEmailModal();
+}
+
+async function advanceAfterEmail(){
+  const subj=document.getElementById('m-subj').value;const body=document.getElementById('m-body').value;
+  try{await navigator.clipboard.writeText(`Subject: ${subj}\n\n${body}`);}catch(e){}
+  if(modalDealId&&sb){
+    const deal=deals.find(d=>d.id===modalDealId);const fromStep=deal.current_step;const idx=si(fromStep);
+    if(idx<ALL.length-1){
+      const toStep=ALL[idx+1].id;const newPhase=phase(toStep);
+      await sb.from('email_log').insert({deal_id:modalDealId,step:fromStep,subject:subj,body,sent_by_role:currentRole});
+      await sb.from('deals').update({current_step:toStep,phase:newPhase}).eq('id',modalDealId);
+      await sb.from('activity_log').insert({deal_id:modalDealId,actor_role:currentRole,action:`Advanced: ${ALL[idx].label} → ${ALL[idx+1].label}. Email copied.`,from_step:fromStep,to_step:toStep});
+      notice(`Advanced to ${ALL[idx+1].label}!`,'ok');
+    }
+  }
+  closeEmailModal();
+}
+
+/* ─── Deal CRUD ─── */
+async function deleteDeal(id){
+  if(!confirm('Delete this deal? This cannot be undone.')) return;
+  await sb.from('deals').delete().eq('id',id);
+  if(selectedId===id){selectedId=null;document.getElementById('main-panel').innerHTML='<div class="empty-state"><div style="font-size:32px">🗑</div><div>Deal deleted.</div></div>';}
+  notice('Deal deleted.','warn');
+}
+function openNewDeal(){ document.getElementById('new-deal-modal').style.display='flex'; }
+async function saveNewDeal(){
+  const fn=document.getElementById('nd-first').value.trim();const em=document.getElementById('nd-email').value.trim();
+  if(!fn||!em){notice('First name and email are required.','warn');return;}
+  const{error}=await sb.from('deals').insert({first_name:fn,last_name:document.getElementById('nd-last').value.trim(),email:em,phone:document.getElementById('nd-phone').value.trim(),deal_type:document.getElementById('nd-type').value,current_step:'submitted',phase:'leasing'});
+  if(error){notice('Error: '+error.message,'error');return;}
+  document.getElementById('new-deal-modal').style.display='none';
+  notice(`Deal created for ${fn}!`,'ok');
+  ['nd-first','nd-last','nd-email','nd-phone'].forEach(id=>document.getElementById(id).value='');
+}
+
+init();
+</script>
+</body>
+</html>
