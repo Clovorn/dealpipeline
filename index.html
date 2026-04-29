@@ -449,18 +449,19 @@ async function testAndSaveApiKey(){
   if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
   document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
   try{
-    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}%2Fsubmissions&apiKey=${encodeURIComponent(key)}`);
+    // Use the form info endpoint — works reliably with Enterprise
+    const res=await fetch(`/.netlify/functions/jotform?path=form%2F${JOTFORM_FORM_ID}&apiKey=${encodeURIComponent(key)}`);
     const data=await res.json();
     if(data.responseCode===200){
       localStorage.setItem('jf_api_key',key);
       localStorage.setItem('jf_form_id', JOTFORM_FORM_ID);
-      const count=data.content?data.content.length:0;
-      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — '+count+' submission'+(count!==1?'s':'')+' ready to import</span>';
+      const formTitle=data.content&&data.content.title?data.content.title:'New Deal Sheet';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — form: '+formTitle+'</span>';
       document.getElementById('sync-now-btn').disabled=false;
       document.getElementById('sync-btn').style.display='inline-block';
       notice('API key saved! Click "Sync submissions now" to import.','ok','settings-notice-bar');
     } else if(data.responseCode===401||data.responseCode===403){
-      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized — make sure your key has Full Access permissions.</span>';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized ('+data.responseCode+'): '+data.message+'</span>';
     } else {
       document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Error ('+data.responseCode+'): '+data.message+'</span>';
     }
