@@ -247,9 +247,12 @@
     <div class="settings-section">API Connection</div>
     <label class="field-label">Jotform API Key</label>
     <input class="field-inp" type="password" id="s-apikey" placeholder="Paste your Jotform API key…"/>
+    <div style="font-size:11px;color:var(--text3);margin-top:5px;line-height:1.5">
+      Go to <strong>Jotform → Account → API</strong> and create a key with <strong>Full Access</strong> permissions. Read-only or restricted keys will not work.
+    </div>
     <div style="margin-top:.6rem;display:flex;gap:8px">
       <button class="btn btn-primary" onclick="testAndSaveApiKey()">Test & save key</button>
-      <a href="https://www.jotform.com/myaccount/api" target="_blank" class="btn">Get API key ↗</a>
+      <a href="https://www.jotform.com/myaccount/api" target="_blank" class="btn">Open Jotform API settings ↗</a>
     </div>
     <div id="api-status" style="font-size:12px;color:var(--text2);margin-top:.6rem"></div>
 
@@ -434,17 +437,20 @@ function refreshSettingsStatus(){
 async function testAndSaveApiKey(){
   const key=document.getElementById('s-apikey').value.trim();
   if(!key){ notice('Please enter an API key.','warn','settings-notice-bar'); return; }
-  document.getElementById('api-status').textContent='Testing connection…';
+  document.getElementById('api-status').innerHTML='<span style="color:var(--text2)">Testing connection…</span>';
   try{
-    const res=await fetch(`/.netlify/functions/jotform?path=user&apiKey=${encodeURIComponent(key)}`);
+    const res=await fetch(`/.netlify/functions/jotform?path=user%2Fforms&apiKey=${encodeURIComponent(key)}`);
     const data=await res.json();
     if(data.responseCode===200){
       localStorage.setItem('jf_api_key',key);
-      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected as '+data.content.username+'</span>';
+      const count=data.content?data.content.length:0;
+      document.getElementById('api-status').innerHTML='<span style="color:var(--green-text)">✓ Connected — '+count+' form'+(count!==1?'s':'')+' found</span>';
       notice('API key saved successfully!','ok','settings-notice-bar');
       await loadFormsIntoSelect(key,'');
+    } else if(data.responseCode===401||data.responseCode===403){
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Unauthorized — make sure your key has <strong>Full Access</strong> permissions in Jotform.</span>';
     } else {
-      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Invalid key: '+data.message+'</span>';
+      document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Error ('+data.responseCode+'): '+data.message+'</span>';
     }
   }catch(e){
     document.getElementById('api-status').innerHTML='<span style="color:var(--red-text)">✗ Connection failed: '+e.message+'</span>';
