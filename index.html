@@ -529,22 +529,85 @@ async function doSync(key,formId){
     let added=0;
     for(const sub of data.content){
       const ans=sub.answers||{};
-      const fn=xf(ans,'first')||xf(ans,'name')||'Customer';
-      const ln=xf(ans,'last')||'';
-      const em=xf(ans,'email')||'';
-      const ph=xf(ans,'phone')||'';
+      // Contact info
+      const contactName=xfByQid(ans,'13')||xf(ans,'contact name')||'';
+      const nameParts=contactName.split(' ');
+      const fn=nameParts[0]||'Customer';
+      const ln=nameParts.slice(1).join(' ')||'';
+      const em=xfByQid(ans,'22')||xf(ans,'email')||'';
+      const ph=xfByQid(ans,'12')||xf(ans,'phone')||'';
+      // Store info
+      const storeName=xfByQid(ans,'15')||'';
+      const storePhone=xfByQid(ans,'16')||'';
+      const legalName=xfByQid(ans,'144')||'';
+      const addrObj=ans['21']&&ans['21'].answer;
+      const address=addrObj?[addrObj.addr_line1,addrObj.city,addrObj.state,addrObj.postal].filter(Boolean).join(', '):'';
+      // Deal info
+      const salesRep=xfByQid(ans,'108')||'';
+      const rom=xfByQid(ans,'99')||'';
+      const purchaseType=xfByQid(ans,'48')||'Equipment Lease';
+      const totalEqCost=xfByQid(ans,'4')||'';
+      const distributor=xfByQid(ans,'23')||'';
+      const targetInstall=xfByQid(ans,'49')||'';
+      const graphicsPkg=xfByQid(ans,'36')||'';
+      const emergency=xfByQid(ans,'17')||'No';
+      const chainStore=xfByQid(ans,'18')||'No';
+      const notes=xfByQid(ans,'113')||'';
+      const coffeeProgram=xfByQid(ans,'139')||'';
+      const subGroup=xfByQid(ans,'137')||'';
+      const custAccount=xfByQid(ans,'130')||'';
+      // Equipment - summarize from payment field
+      const equipAns=ans['3']&&ans['3'].answer;
+      const equipSummary=equipAns?Object.keys(equipAns).slice(0,3).join(', '):'See form';
+
       const {data:ex}=await sb.from('deals').select('id').eq('jotform_submission_id',sub.id).maybeSingle();
       if(!ex){
-        await sb.from('deals').insert({jotform_submission_id:sub.id,first_name:fn,last_name:ln,email:em,phone:ph,deal_type:'Equipment Lease',current_step:'submitted',phase:'leasing',jotform_answers:ans});
+        await sb.from('deals').insert({
+          jotform_submission_id:sub.id,
+          first_name:fn, last_name:ln, email:em, phone:ph,
+          store_name:storeName, store_phone:storePhone,
+          legal_business_name:legalName, address,
+          sales_rep:salesRep, rom, chain_store:chainStore,
+          purchase_type:purchaseType, total_eq_cost:totalEqCost,
+          parent_distributor:distributor, target_install_date:targetInstall,
+          graphics_package:graphicsPkg, emergency_install:emergency,
+          equipment_selection:equipSummary, notes,
+          coffee_program:coffeeProgram, sub_group:subGroup,
+          customer_account:custAccount,
+          deal_type:purchaseType||'Equipment Lease',
+          current_step:'submitted', phase:'leasing',
+          jotform_answers:ans
+        });
         added++;
       }
     }
     return added;
-  }catch(e){ return 0; }
+  }catch(e){ console.error('Sync error:',e); return 0; }
 }
 
+// Extract answer by question ID (most reliable for Jotform)
+function xfByQid(ans,qid){
+  const a=ans[qid];
+  if(!a||!a.answer) return '';
+  if(typeof a.answer==='string') return a.answer.trim();
+  if(typeof a.answer==='object') return Object.values(a.answer).filter(Boolean).join(', ').trim();
+  return '';
+}
+
+// Fallback: extract by field name keyword
 function xf(ans,field){
   for(const k in ans){const a=ans[k];const nm=(a.name||'').toLowerCase();if(nm.includes(field)&&a.answer){if(typeof a.answer==='string')return a.answer;if(typeof a.answer==='object')return Object.values(a.answer).filter(Boolean).join(' ');}}return null;
+}
+
+// Auto-poll every 5 minutes if Jotform is configured
+function startAutoPoll(){
+  const key=localStorage.getItem('jf_api_key');
+  const formId=localStorage.getItem('jf_form_id');
+  if(!key||!formId) return;
+  setInterval(async()=>{
+    const added=await doSync(key,formId);
+    if(added>0) notice(`Auto-sync: ${added} new submission${added!==1?'s':''} added!`,'ok');
+  }, 5*60*1000); // every 5 minutes
 }
 
 function changePassword(){
@@ -591,6 +654,8 @@ async function init(){
   document.getElementById('sync-badge').style.display='inline';
   // Show sync button if jotform configured
   if(localStorage.getItem('jf_form_id')) document.getElementById('sync-btn').style.display='inline-block';
+  // Start auto-polling for new submissions
+  startAutoPoll();
 }
 
 async function loadDeals(){
@@ -634,8 +699,9 @@ function renderSidebar(){
   else if(currentRole==='ops') list=list.filter(d=>phase(d.current_step)==='ops');
   document.getElementById('sidebar').innerHTML=list.length
     ?list.map(d=>`<div class="deal-card${selectedId===d.id?' selected':''}" onclick="selectDeal('${d.id}')">
-        <div class="deal-name">${d.first_name} ${d.last_name}</div>
-        <div class="deal-meta">${d.email}</div>
+        <div class="deal-name">${d.first_name} ${d.last_name}${d.store_name?' — '+d.store_name:''}</div>
+        <div class="deal-meta">${d.email||d.phone||'No contact info'}</div>
+        ${d.sales_rep?`<div class="deal-meta">Rep: ${d.sales_rep}</div>`:''}
         <div class="deal-foot">${stepPill(d)}<span style="font-size:10px;color:var(--text3)">${fmtDate(d.created_at)}</span></div>
         <div class="prog-bar"><div class="prog-fill" style="width:${pct(d)}%"></div></div>
       </div>`).join('')
@@ -670,9 +736,22 @@ function renderMain(id){
     </div>
     <div class="prog-bar" style="height:5px;margin-bottom:1rem"><div class="prog-fill" style="width:${pct(deal)}%"></div></div>
     <div class="info-grid">
+      <div class="info-cell"><div class="lbl">Store name</div><div class="val">${deal.store_name||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Legal business name</div><div class="val">${deal.legal_business_name||'—'}</div></div>
       <div class="info-cell"><div class="lbl">Submitted</div><div class="val">${fmtDate(deal.created_at)}</div></div>
-      <div class="info-cell"><div class="lbl">Phone</div><div class="val">${deal.phone||'—'}</div></div>
-      <div class="info-cell"><div class="lbl">Deal type</div><div class="val">${deal.deal_type}</div></div>
+      <div class="info-cell"><div class="lbl">Contact phone</div><div class="val">${deal.phone||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Store phone</div><div class="val">${deal.store_phone||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Address</div><div class="val">${deal.address||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Sales rep</div><div class="val">${deal.sales_rep||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">ROM</div><div class="val">${deal.rom||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Coffee program</div><div class="val">${deal.coffee_program||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Purchase type</div><div class="val">${deal.purchase_type||deal.deal_type||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Total EQ cost</div><div class="val">${deal.total_eq_cost?'$'+deal.total_eq_cost:'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Target install</div><div class="val">${deal.target_install_date||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Distributor</div><div class="val">${deal.parent_distributor||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Graphics package</div><div class="val">${deal.graphics_package||'—'}</div></div>
+      <div class="info-cell"><div class="lbl">Emergency install</div><div class="val">${deal.emergency_install==='Yes'?'⚡ Yes':'No'}</div></div>
+      ${deal.notes?`<div class="info-cell" style="grid-column:1/-1"><div class="lbl">Notes</div><div class="val">${deal.notes}</div></div>`:''}
     </div>
     <div class="phase-lbl">📝 Leasing phase</div>
     <div class="pipeline">${lPipe}</div>
