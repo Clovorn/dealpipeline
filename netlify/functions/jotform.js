@@ -1,11 +1,13 @@
 exports.handler = async (event) => {
-  const { path, apiKey } = event.queryStringParameters || {};
+  const { path, apiKey, offset, limit } = event.queryStringParameters || {};
 
   if (!apiKey || !path) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing apiKey or path' }) };
   }
 
-  const url = `https://ronnoco.jotform.com/API/${path}?apiKey=${apiKey}&limit=100`;
+  const params = new URLSearchParams({ apiKey, limit: limit||'100' });
+  if (offset) params.set('offset', offset);
+  const url = `https://ronnoco.jotform.com/API/${path}?${params.toString()}`;
   console.log('Fetching:', url.replace(apiKey, '[REDACTED]'));
 
   try {
