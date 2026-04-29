@@ -6,10 +6,12 @@ exports.handler = async (event) => {
   }
 
   const url = `https://ronnoco.jotform.com/API/${path}?apiKey=${apiKey}&limit=100`;
+  console.log('Fetching:', url.replace(apiKey, '[REDACTED]'));
 
   try {
     const response = await fetch(url);
     const data = await response.json();
+    console.log('Response code:', data.responseCode, 'Message:', data.message);
     return {
       statusCode: 200,
       headers: {
@@ -19,10 +21,10 @@ exports.handler = async (event) => {
       body: JSON.stringify(data),
     };
   } catch (err) {
+    console.error('Fetch error:', err.message);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
   }
 };
-
