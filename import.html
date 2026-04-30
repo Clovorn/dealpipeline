@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Import Jotform CSV → Deal Pipeline</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f4;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .card{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,0.12);padding:2rem;width:100%;max-width:600px;box-shadow:0 4px 24px rgba(0,0,0,0.06)}
+  h1{font-size:18px;font-weight:600;margin-bottom:.3rem;color:#1a1a18}
+  .sub{font-size:13px;color:#5f5e5a;margin-bottom:1.5rem;line-height:1.5}
+  .step{background:#f5f5f4;border-radius:8px;padding:1rem;margin-bottom:.8rem}
+  .step-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#5f5e5a;margin-bottom:.5rem}
+  .file-drop{border:2px dashed #d0cdc8;border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:border-color .15s;position:relative}
+  .file-drop:hover{border-color:#378add}
+  .file-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .file-drop-icon{font-size:32px;margin-bottom:.5rem}
+  .file-drop-text{font-size:13px;color:#5f5e5a}
+  .preview{background:#eaf3de;border-radius:8px;padding:.8rem 1rem;font-size:13px;color:#27500a;margin-top:.8rem;display:none}
+  .preview-err{background:#fcebeb;color:#791f1f}
+  .columns{font-size:11px;color:#5f5e5a;margin-top:.3rem}
+  .btn{width:100%;padding:.8rem;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;margin-top:.8rem}
+  .btn-primary{background:#378add;color:#fff}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .progress{margin-top:1rem;display:none}
+  .progress-bar{height:6px;background:#e8e6e0;border-radius:3px;overflow:hidden;margin-bottom:.5rem}
+  .progress-fill{height:100%;background:#378add;border-radius:3px;transition:width .3s}
+  .progress-text{font-size:12px;color:#5f5e5a;text-align:center}
+  .result{margin-top:1rem;padding:1rem;border-radius:8px;font-size:13px;display:none}
+  .result-ok{background:#eaf3de;color:#27500a}
+  .result-err{background:#fcebeb;color:#791f1f}
+  .log{max-height:200px;overflow-y:auto;margin-top:.8rem;font-size:11px;color:#5f5e5a;font-family:monospace;background:#f5f5f4;padding:.6rem;border-radius:6px;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>📥 Import Jotform Submissions</h1>
+  <p class="sub">Upload your exported Jotform CSV to import all existing submissions into the Deal Pipeline dashboard. Duplicates are automatically skipped.</p>
+
+  <div class="step">
+    <div class="step-title">Step 1 — Export from Jotform</div>
+    <div style="font-size:12px;color:#5f5e5a;line-height:1.6">
+      1. Go to <strong>ronnoco.jotform.com/tables/260154983685872</strong><br>
+      2. Click the <strong>···</strong> menu (top right of table)<br>
+      3. Select <strong>Export → Export as CSV</strong><br>
+      4. Save the file to your computer
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">Step 2 — Upload CSV file</div>
+    <div class="file-drop" id="drop-zone">
+      <input type="file" accept=".csv" id="csv-file" onchange="handleFile(this.files[0])"/>
+      <div class="file-drop-icon">📄</div>
+      <div class="file-drop-text">Click to select your CSV file<br><span style="font-size:11px;color:#888780">or drag and drop here</span></div>
+    </div>
+    <div class="preview" id="preview"></div>
+  </div>
+
+  <button class="btn btn-primary" id="import-btn" disabled onclick="runImport()">Import submissions →</button>
+
+  <div class="progress" id="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-text" id="progress-text">Starting…</div>
+  </div>
+
+  <div class="result" id="result"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWxtZXF1d2p4dnJtZ3BsdGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODEyNzMsImV4cCI6MjA5MzA1NzI3M30.bT56CL9oK9HcRBQTry3G5kBqbseuGDaxKvqyDkCczHM';
+
+let sb, csvRows = [];
+
+window.addEventListener('DOMContentLoaded', () => {
+  sb = supabase.createClient(SB_URL, SB_KEY);
+
+  // Drag and drop
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='#378add'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor=''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.style.borderColor='';
+    const file = e.dataTransfer.files[0];
+    if(file) handleFile(file);
+  });
+});
+
+function handleFile(file){
+  if(!file || !file.name.endsWith('.csv')){
+    showPreview('Please select a .csv file.', true);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    csvRows = parseCSV(e.target.result);
+    if(csvRows.length > 1){
+      const headers = csvRows[0];
+      showPreview(`✓ Found <strong>${csvRows.length - 1} submission${csvRows.length-1!==1?'s':''}</strong> ready to import.<div class="columns">Columns detected: ${headers.slice(0,6).join(', ')}${headers.length>6?'…':''}</div>`, false);
+      document.getElementById('import-btn').disabled = false;
+    } else {
+      showPreview('Could not read CSV. Make sure it was exported from Jotform Tables.', true);
+      document.getElementById('import-btn').disabled = true;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showPreview(html, isErr){
+  const el = document.getElementById('preview');
+  el.style.display = 'block';
+  el.className = 'preview' + (isErr?' preview-err':'');
+  el.innerHTML = html;
+}
+
+function parseCSV(text){
+  const rows = [];
+  const lines = text.split(/\r?\n/);
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const cols = []; let cur = '', inQ = false;
+    for(let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if(ch === '"'){ inQ = !inQ; }
+      else if(ch === ',' && !inQ){ cols.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    rows.push(cols);
+  }
+  return rows;
+}
+
+function logLine(msg){
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  el.innerHTML += msg + '<br>';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function runImport(){
+  if(!csvRows.length){ return; }
+  const btn = document.getElementById('import-btn');
+  const prog = document.getElementById('progress');
+  const progFill = document.getElementById('progress-fill');
+  const progText = document.getElementById('progress-text');
+  const result = document.getElementById('result');
+
+  btn.disabled = true;
+  prog.style.display = 'block';
+  result.style.display = 'none';
+  document.getElementById('log').style.display = 'none';
+  document.getElementById('log').innerHTML = '';
+
+  const headers = csvRows[0].map(h => h.toLowerCase().trim());
+  const dataRows = csvRows.slice(1).filter(r => r.some(c => c));
+  const total = dataRows.length;
+  let added = 0, skipped = 0, errors = 0;
+
+  const col = (row, ...kws) => {
+    for(const kw of kws){
+      const idx = headers.findIndex(h => h.includes(kw));
+      if(idx >= 0 && row[idx] && row[idx].trim()) return row[idx].trim();
+    }
+    return '';
+  };
+
+  for(let i = 0; i < dataRows.length; i++){
+    const row = dataRows[i];
+    const pct = Math.round((i+1)/total*100);
+    progFill.style.width = pct + '%';
+    progText.textContent = `Processing ${i+1} of ${total}…`;
+
+    try {
+      // Build a unique ID — use submission ID column if available
+      const subId = col(row,'submission id','submissionid')||
+                    col(row,'#','no.')||
+                    'csv-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2);
+
+      // Check for duplicate
+      const {data:ex} = await sb.from('deals').select('id').eq('jotform_submission_id', subId).maybeSingle();
+      if(ex){ skipped++; logLine(`⏭ Skipped (duplicate): ${col(row,'contact name','store name')||subId}`); continue; }
+
+      const contactName = col(row,'contact name');
+      const nameParts = contactName.split(' ').filter(Boolean);
+      const storeName = col(row,'store name');
+      const displayName = contactName || storeName || 'Submission '+(i+1);
+
+      const deal = {
+        jotform_submission_id: subId,
+        first_name: nameParts[0] || col(row,'first name','firstname') || 'Customer',
+        last_name: nameParts.slice(1).join(' ') || col(row,'last name','lastname') || '',
+        email: col(row,'contact email','contacts email','email'),
+        phone: col(row,'contact cell phone','contact cell','cell phone','phone'),
+        store_name: storeName,
+        store_phone: col(row,'store phone'),
+        legal_business_name: col(row,'legal business name','legal business'),
+        address: col(row,'address'),
+        sales_rep: col(row,'ronnoco sales rep','sales rep'),
+        rom: col(row,'select the rom','rom'),
+        purchase_type: col(row,'pick which is applicable','pick which','purchase type') || 'Equipment Lease',
+        total_eq_cost: col(row,'total eq cost','total eq'),
+        parent_distributor: col(row,'parent distributor'),
+        target_install_date: col(row,'target install date','target install'),
+        graphics_package: col(row,'pick a graphics package','graphics package'),
+        emergency_install: col(row,'emergency install') || 'No',
+        notes: col(row,'please give any additional','additional note','notes'),
+        coffee_program: col(row,'coffee program'),
+        sub_group: col(row,'sub group'),
+        customer_account: col(row,'customer account'),
+        chain_store: col(row,'chain store') || 'No',
+        deal_type: col(row,'pick which is applicable','pick which') || 'Equipment Lease',
+        current_step: 'submitted',
+        phase: 'leasing',
+        jotform_answers: {},
+      };
+
+      const {error} = await sb.from('deals').insert(deal);
+      if(error){ errors++; logLine(`✗ Error on "${displayName}": ${error.message}`); }
+      else { added++; logLine(`✓ Imported: ${displayName}`); }
+
+    } catch(e) {
+      errors++;
+      logLine(`✗ Exception on row ${i+1}: ${e.message}`);
+    }
+  }
+
+  progFill.style.width = '100%';
+  progText.textContent = 'Complete!';
+  btn.disabled = false;
+
+  result.style.display = 'block';
+  result.className = 'result ' + (errors > 0 ? 'result-err' : 'result-ok');
+  result.innerHTML = `
+    <strong>${errors > 0 ? '⚠' : '🎉'} Import complete</strong><br>
+    ✓ ${added} submission${added!==1?'s':''} imported<br>
+    ${skipped > 0 ? `⏭ ${skipped} skipped (already existed)<br>` : ''}
+    ${errors > 0 ? `✗ ${errors} error${errors!==1?'s':''} — check log below` : ''}
+    <br><br>
+    <a href="https://clever-sopapillas-0ef9d0.netlify.app/" target="_blank" style="color:inherit;font-weight:500">→ Open Dashboard to see imported deals</a>
+  `;
+}
+</script>
+</body>
+</html>
