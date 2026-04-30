@@ -29,23 +29,23 @@
     }
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
-  .shell{max-width:1200px;margin:0 auto;padding:0 1.5rem 3rem}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;font-size:15px}
+  .shell{max-width:1280px;margin:0 auto;padding:0 1.5rem 3rem}
   /* Topbar */
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:0.5px solid var(--border);margin-bottom:1rem;background:var(--bg3);position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px}
   .topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .wordmark{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-.02em}
-  .pill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .wordmark{font-size:20px;font-weight:600;color:var(--text);letter-spacing:-.02em}
+  .pill{font-size:12px;font-weight:500;padding:4px 11px;border-radius:999px;white-space:nowrap}
   .pill-blue{background:var(--blue-bg);color:var(--blue-text)}
   .pill-amber{background:var(--amber-bg);color:var(--amber-text)}
   .pill-green{background:var(--green-bg);color:var(--green-text)}
   .pill-gray{background:var(--bg2);color:var(--text2)}
   .pill-red{background:var(--red-bg);color:var(--red-text)}
   .role-tabs{display:flex;gap:4px}
-  .rtab{font-size:12px;padding:5px 14px;border:0.5px solid var(--border);border-radius:999px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
+  .rtab{font-size:13px;padding:6px 16px;border:0.5px solid var(--border);border-radius:999px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
   .rtab.active{background:var(--bg);border-color:var(--border2);color:var(--text);font-weight:500}
   .topbar-right{display:flex;align-items:center;gap:8px}
-  .settings-btn{font-size:12px;padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
+  .settings-btn{font-size:13px;padding:6px 14px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit}
   .settings-btn:hover{background:var(--bg2)}
   /* Toolbar */
   .toolbar{display:flex;align-items:center;justify-content:flex-end;padding:.5rem 0;margin-bottom:.9rem}
@@ -59,8 +59,8 @@
   /* Metrics */
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem}
   .metric{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.8rem 1rem}
-  .metric-label{font-size:11px;color:var(--text2);margin-bottom:3px}
-  .metric-value{font-size:26px;font-weight:600;color:var(--text)}
+  .metric-label{font-size:12px;color:var(--text2);margin-bottom:4px}
+  .metric-value{font-size:28px;font-weight:600;color:var(--text)}
   /* Filters */
   .filters{display:flex;gap:7px;margin-bottom:.8rem;flex-wrap:wrap}
   input,select,textarea{font-family:inherit;font-size:13px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);outline:none}
@@ -68,46 +68,46 @@
   /* Layout */
   .layout{display:grid;grid-template-columns:280px 1fr;gap:12px;align-items:start}
   .sidebar{display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 260px);overflow-y:auto}
-  .deal-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.7rem .9rem;cursor:pointer;transition:border-color .12s}
+  .deal-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.8rem 1rem;cursor:pointer;transition:border-color .12s}
   .deal-card:hover{border-color:var(--border2)}
   .deal-card.selected{border:1.5px solid var(--blue-border)}
-  .deal-name{font-size:13px;font-weight:500;color:var(--text)}
-  .deal-meta{font-size:11px;color:var(--text3);margin-top:1px}
-  .deal-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+  .deal-name{font-size:15px;font-weight:500;color:var(--text)}
+  .deal-meta{font-size:12px;color:var(--text3);margin-top:2px}
+  .deal-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
   .prog-bar{height:3px;background:var(--bg2);border-radius:2px;margin-top:6px;overflow:hidden}
   .prog-fill{height:100%;border-radius:2px;background:#378add;transition:width .3s}
   /* Main panel */
   .main{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.4rem}
   .deal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.9rem;padding-bottom:.9rem;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:8px}
-  .deal-hdr-name{font-size:18px;font-weight:600;color:var(--text)}
-  .deal-hdr-meta{font-size:12px;color:var(--text3);margin-top:3px}
-  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
-  .info-cell .lbl{font-size:11px;color:var(--text2);margin-bottom:2px}
-  .info-cell .val{font-size:13px;font-weight:500;color:var(--text)}
-  .phase-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin:.9rem 0 6px}
+  .deal-hdr-name{font-size:22px;font-weight:600;color:var(--text)}
+  .deal-hdr-meta{font-size:14px;color:var(--text3);margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem}
+  .info-cell .lbl{font-size:12px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+  .info-cell .val{font-size:15px;font-weight:500;color:var(--text)}
+  .phase-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin:.9rem 0 6px}
   .pipeline{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:6px;margin-bottom:.3rem}
-  .pipe-step{display:flex;flex-direction:column;align-items:center;min-width:70px;position:relative}
-  .pipe-step+.pipe-step::before{content:'';position:absolute;top:13px;left:calc(-50%);width:100%;height:1px;background:var(--border);z-index:0}
-  .pipe-dot{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:13px;position:relative;z-index:1;flex-shrink:0}
+  .pipe-step{display:flex;flex-direction:column;align-items:center;min-width:76px;position:relative}
+  .pipe-step+.pipe-step::before{content:'';position:absolute;top:14px;left:calc(-50%);width:100%;height:1px;background:var(--border);z-index:0}
+  .pipe-dot{width:30px;height:30px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;z-index:1;flex-shrink:0}
   .pipe-dot.done{background:#eaf3de;border-color:#639922}
   .pipe-dot.cur{background:var(--blue-bg);border:2px solid var(--blue-border);box-shadow:0 0 0 4px rgba(55,138,221,.12)}
   .pipe-dot.locked{opacity:.3}
-  .pipe-name{font-size:9px;color:var(--text3);text-align:center;margin-top:4px;line-height:1.25;max-width:68px}
+  .pipe-name{font-size:10px;color:var(--text3);text-align:center;margin-top:4px;line-height:1.25;max-width:74px}
   .pipe-name.cur{color:var(--blue-text);font-weight:600}
   .pipe-name.done{color:#3b6d11}
-  .action-box{background:var(--bg2);border-radius:var(--radius-lg);padding:1rem 1.1rem;margin-top:.7rem}
-  .action-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
-  .action-desc{font-size:12px;color:var(--text2);margin-bottom:.8rem}
+  .action-box{background:var(--bg2);border-radius:var(--radius-lg);padding:1.1rem 1.2rem;margin-top:.7rem}
+  .action-title{font-size:16px;font-weight:500;color:var(--text);margin-bottom:5px}
+  .action-desc{font-size:14px;color:var(--text2);margin-bottom:.8rem}
   .action-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:.7rem}
   .log-section{margin-top:1rem}
-  .log-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+  .log-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
   .log-box{max-height:140px;overflow-y:auto}
   .log-entry{font-size:11px;padding:5px 0;border-bottom:0.5px solid var(--border);color:var(--text2);display:flex;gap:10px}
   .log-time{color:var(--text3);flex-shrink:0;font-size:10px;min-width:110px}
   .log-role{color:var(--text3);flex-shrink:0;min-width:60px}
-  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;color:var(--text3);font-size:13px;gap:10px}
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;color:var(--text3);font-size:15px;gap:10px}
   /* Buttons */
-  .btn{font-size:12px;padding:6px 13px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;font-family:inherit}
+  .btn{font-size:13px;padding:7px 15px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;font-family:inherit}
   .btn:hover{background:var(--bg2)}
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .btn-primary{background:var(--blue-bg);color:var(--blue-text);border-color:var(--blue-border)}
@@ -115,7 +115,7 @@
   .btn-green{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
   .btn-green:hover{opacity:.85}
   .btn-red{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
-  .btn-sm{font-size:11px;padding:4px 9px}
+  .btn-sm{font-size:12px;padding:5px 11px}
   /* Modals */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem}
   .modal{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border2);padding:1.4rem;width:100%;max-width:540px;max-height:90vh;overflow-y:auto}
@@ -891,54 +891,122 @@ function renderMain(id){
   const logs=activityMap[id]||[];
   const lPipe=LEASING.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
   const oPipe=OPS.map(s=>{const di=si(s.id);const cls=di<idx?'done':di===idx?'cur':'locked';return`<div class="pipe-step"><div class="pipe-dot ${cls}">${s.icon}</div><div class="pipe-name ${cls}">${s.label}</div></div>`;}).join('');
-  const logHtml=logs.length?logs.map(l=>`<div class="log-entry"><span class="log-time">${fmtTime(l.created_at)}</span><span class="log-role">[${l.actor_role}]</span><span>${l.action}</span></div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:4px 0">No activity yet.</div>';
-  const answersHtml=renderAnswers(deal.jotform_answers);
+  const logHtml=logs.length?logs.map(l=>`<div class="log-entry"><span class="log-time">${fmtTime(l.created_at)}</span><span class="log-role">[${l.actor_role}]</span><span>${l.action}</span></div>`).join(''):'<div style="font-size:13px;color:var(--text3);padding:4px 0">No activity yet.</div>';
+
+  // Build deal info from database columns (works for both CSV imports and webhook submissions)
+  const field=(label,val)=>val?`<div class="info-cell"><div class="lbl">${label}</div><div class="val">${val}</div></div>`:'';
+
+  // Also try to enrich from jotform_answers if available
+  const ans=deal.jotform_answers&&Object.keys(deal.jotform_answers).length?deal.jotform_answers:null;
+  const ansField=(label,...qids)=>{
+    if(!ans) return '';
+    for(const qid of qids){
+      const a=ans[qid];
+      if(a&&a.answer){
+        const v=formatAnswer(a);
+        if(v&&v!=='—') return `<div class="info-cell"><div class="lbl">${label}</div><div class="val">${v}</div></div>`;
+      }
+    }
+    return '';
+  };
 
   document.getElementById('main-panel').innerHTML=`
     <div class="deal-hdr">
       <div>
         <div class="deal-hdr-name">${deal.first_name} ${deal.last_name}${deal.store_name?' — '+deal.store_name:''}</div>
-        <div class="deal-hdr-meta">${deal.email} · ${deal.phone||'—'} · ${deal.purchase_type||deal.deal_type}</div>
+        <div class="deal-hdr-meta">${[deal.email,deal.phone,deal.purchase_type||deal.deal_type].filter(Boolean).join(' · ')}</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         ${stepPill(deal)}
-        <span style="font-size:11px;color:var(--text3)">${pct(deal)}% complete</span>
+        <span style="font-size:13px;color:var(--text3)">${pct(deal)}% complete</span>
         ${!isSales?`<button class="btn btn-sm btn-red" onclick="deleteDeal('${id}')">Delete</button>`:''}
       </div>
     </div>
-    <div class="prog-bar" style="height:5px;margin-bottom:1rem"><div class="prog-fill" style="width:${pct(deal)}%"></div></div>
+    <div class="prog-bar" style="height:5px;margin-bottom:1.2rem"><div class="prog-fill" style="width:${pct(deal)}%"></div></div>
 
     <div class="phase-lbl">📝 Leasing phase</div>
     <div class="pipeline">${lPipe}</div>
     <div class="phase-lbl">⚙️ Operations phase</div>
     <div class="pipeline">${oPipe}</div>
 
-    <div class="action-box">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <div class="action-box" style="margin-bottom:1rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div class="action-title">${curStep.icon} Current step: ${curStep.label}</div>
         ${isLast?'<span class="pill pill-green">All done!</span>':''}
       </div>
       <div class="action-desc">${curStep.action}</div>
       ${isSales
-        ?`<div style="font-size:12px;color:var(--text2);margin-top:.5rem;padding:.6rem;background:var(--bg2);border-radius:var(--radius)">Read-only access. Contact Leasing or Operations to advance this deal.</div>`
+        ?`<div style="font-size:13px;color:var(--text2);margin-top:.5rem;padding:.6rem;background:var(--bg2);border-radius:var(--radius)">Read-only access. Contact Leasing or Operations to advance this deal.</div>`
         :!isLast
           ?`<div class="action-row">
               <button class="btn btn-primary btn-sm" onclick="openEmailModal('${id}',false)">✉ Draft email</button>
               ${canAct&&nextStep?`<button class="btn btn-green btn-sm" onclick="openEmailModal('${id}',true)">Advance → ${nextStep.icon} ${nextStep.label}</button>`:''}
-              ${!canAct?`<span style="font-size:11px;color:var(--text3)">Switch to the correct role to advance.</span>`:''}
+              ${!canAct?`<span style="font-size:13px;color:var(--text3)">Switch to the correct role to advance.</span>`:''}
             </div>`
-          :`<div style="font-size:13px;color:var(--green-text);margin-top:.4rem;font-weight:500">🎉 All 13 steps complete. Deal closed!</div>`}
+          :`<div style="font-size:14px;color:var(--green-text);margin-top:.4rem;font-weight:500">🎉 All 13 steps complete. Deal closed!</div>`}
     </div>
 
-    <div style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
-        <div class="log-title">Submission data</div>
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.7rem">👤 Contact & Store</div>
+      <div class="info-grid">
+        ${field('Contact name', [deal.first_name,deal.last_name].filter(Boolean).join(' '))}
+        ${field('Contact email', deal.email)}
+        ${field('Contact phone', deal.phone)}
+        ${field('Store name', deal.store_name)}
+        ${field('Store phone', deal.store_phone)}
+        ${field('Legal business name', deal.legal_business_name)}
+        ${field('Address', deal.address)}
+        ${field('Chain store', deal.chain_store)}
+        ${field('Customer account #', deal.customer_account)}
+        ${field('Sub group', deal.sub_group)}
+        ${!deal.address&&ans?ansField('Address','21'):''}
       </div>
-      ${answersHtml}
     </div>
 
-    <div class="log-section" style="margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem">
-      <div class="log-title">Activity log</div>
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.7rem">💼 Deal & Sales Info</div>
+      <div class="info-grid">
+        ${field('Sales rep', deal.sales_rep)}
+        ${field('ROM', deal.rom)}
+        ${field('Coffee program', deal.coffee_program)}
+        ${field('Purchase type', deal.purchase_type||deal.deal_type)}
+        ${field('Total EQ cost', deal.total_eq_cost?'$'+deal.total_eq_cost:'')}
+        ${field('Target install date', deal.target_install_date)}
+        ${field('Emergency install', deal.emergency_install==='Yes'?'⚡ Yes':'No')}
+        ${field('Submitted', fmtDate(deal.created_at))}
+      </div>
+    </div>
+
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.7rem">🚚 Distribution</div>
+      <div class="info-grid">
+        ${field('Parent distributor', deal.parent_distributor)}
+        ${ans?ansField('Distributor warehouse','25'):''}
+        ${ans?ansField('Distributor customer #','24'):''}
+        ${ans?ansField('Distributor rep','57')||ansField('Distributor rep','104'):''}
+        ${ans?ansField('DSD or indirect','119'):''}
+        ${ans?ansField('Delivery method','121'):''}
+      </div>
+    </div>
+
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.7rem">🎨 Graphics & Equipment</div>
+      <div class="info-grid">
+        ${field('Graphics package', deal.graphics_package)}
+        ${ans?ansField('Ship graphics with equip?','94'):''}
+        ${ans?ansField('Custom graphics?','145'):''}
+        ${ans?ansField('Custom graphics details','146'):''}
+        ${ans?ansField('Equipment & service notes','114'):''}
+      </div>
+    </div>
+
+    ${deal.notes?`<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.5rem">📝 Notes</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.6;background:var(--bg2);padding:.8rem;border-radius:var(--radius)">${deal.notes}</div>
+    </div>`:''}
+
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem">
+      <div class="log-title" style="margin-bottom:6px">Activity log</div>
       <div class="log-box">${logHtml}</div>
     </div>`;
 }
