@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Deal Pipeline Dashboard v4</title>
+<title>Deal Pipeline Dashboard v5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>"/>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -158,6 +158,7 @@
     <div class="topbar-left">
       <span class="wordmark">Deal Pipeline</span>
       <span class="pill pill-blue">Supabase</span>
+      <span style="font-size:10px;color:var(--text3);background:var(--bg2);padding:2px 7px;border-radius:4px">v5</span>
       <span id="live-badge" class="pill pill-amber">connecting…</span>
       <span id="sync-badge" class="pill pill-green" style="display:none">● live</span>
     </div>
@@ -1003,6 +1004,18 @@ function renderMain(id){
     ${deal.notes?`<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
       <div class="phase-lbl" style="margin-bottom:.5rem">📝 Notes</div>
       <div style="font-size:14px;color:var(--text);line-height:1.6;background:var(--bg2);padding:.8rem;border-radius:var(--radius)">${deal.notes}</div>
+    </div>`:''}
+
+    ${deal.raw_csv&&Object.keys(deal.raw_csv).length?`
+    <div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+      <div class="phase-lbl" style="margin-bottom:.7rem;cursor:pointer;display:flex;justify-content:space-between" onclick="toggleSection('raw-csv-${id}')">
+        📋 Full form data <span style="font-size:11px;color:var(--text3)">(${Object.keys(deal.raw_csv).length} fields) ▾</span>
+      </div>
+      <div id="raw-csv-${id}" style="display:none">
+        <div class="info-grid">
+          ${Object.entries(deal.raw_csv).filter(([k,v])=>v&&v.toString().trim()&&!['id','jotform_submission_id','current_step','phase','deal_type','purchase_type'].includes(k)).map(([k,v])=>`<div class="info-cell"><div class="lbl">${k.replace(/_/g,' ')}</div><div class="val">${v}</div></div>`).join('')}
+        </div>
+      </div>
     </div>`:''}
 
     <div style="border-top:0.5px solid var(--border);padding-top:1rem">
