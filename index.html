@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ronnoco Deal Dashboard</title>
+<style>
+:root {
+  --navy:#1a3a6b;--navy-dark:#0f2347;--navy-light:#2a5298;
+  --blue-50:#eef4ff;--blue-100:#ddeaff;--blue-200:#b5ccf0;--blue-600:#1a3a6b;
+  --green-50:#eaf6e0;--green-100:#d8f0d0;--green-200:#a8d898;--green-600:#2d6a1f;
+  --amber-50:#fffdf5;--amber-100:#fdf0d8;--amber-200:#f5cc80;--amber-600:#854f0b;
+  --red-50:#fff8f8;--red-100:#fef0f0;--red-200:#f0b0b0;--red-600:#a32d2d;
+  --purple-50:#f3f0ff;--purple-100:#eeedfe;--purple-200:#afa9ec;--purple-600:#534ab7;
+  --teal-50:#e8f7f2;--teal-100:#e1f5ee;--teal-200:#5dcaa5;--teal-600:#0f6e56;
+  --gray-50:#f7f9fc;--gray-100:#f0f2f5;--gray-200:#e2e6ed;--gray-300:#d0d6e0;
+  --gray-400:#8a9ab0;--gray-500:#5a6a7e;--gray-600:#3a4a5e;--gray-900:#1e2d42;
+  --bg:#f4f6f9;--surface:#fff;--border:#e2e6ed;--text:#1e2d42;--text2:#5a6a7e;--text3:#8a9ab0;
+  --radius:8px;--radius-lg:12px;--shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+button{cursor:pointer;font-family:inherit;font-size:13px}
+input,textarea,select{font-family:inherit;font-size:13px}
+
+/* TOPBAR */
+.topbar{background:var(--navy);height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;flex-shrink:0;z-index:100}
+.logo{width:28px;height:28px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--navy);letter-spacing:-0.5px;flex-shrink:0}
+.brand{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.3px}
+.brand-version{font-size:10px;color:rgba(255,255,255,0.45);font-weight:400;margin-left:4px}
+.topbar-spacer{flex:1}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.2)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
+.sync-dot.connecting{background:#f59e0b;animation:pulse 1s infinite}
+.sync-dot.error{background:#ef4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ROLE TABS */
+.roletabs{background:var(--navy-dark);display:flex;padding:0 16px;border-bottom:0.5px solid rgba(255,255,255,0.07);flex-shrink:0}
+.rtab{font-size:12px;color:rgba(255,255,255,0.45);padding:8px 14px;border-bottom:2px solid transparent;cursor:pointer;transition:color 0.15s;white-space:nowrap}
+.rtab.active{color:#fff;border-bottom-color:#7ab3f5}
+.rtab:hover:not(.active){color:rgba(255,255,255,0.75)}
+
+/* TOOLBAR */
+.toolbar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--radius);border:0.5px solid var(--gray-300);background:var(--surface);color:var(--text);font-size:12px;transition:background 0.15s}
+.btn:hover{background:var(--gray-100)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:var(--navy-light)}
+.btn-danger{background:var(--red-100);color:var(--red-600);border-color:var(--red-200)}
+.btn-danger:hover{background:#fde8e8}
+.btn-success{background:var(--green-50);color:var(--green-600);border-color:var(--green-200)}
+.toolbar-spacer{flex:1}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.search-input{padding:5px 10px 5px 28px;border:0.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-50);color:var(--text);width:200px;outline:none}
+.search-input:focus{border-color:var(--navy);background:#fff}
+
+/* METRICS */
+.metrics{background:var(--surface);border-bottom:0.5px solid var(--border);padding:10px 16px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;flex-shrink:0}
+.metric{background:var(--gray-50);border-radius:var(--radius);padding:8px 12px;border:0.5px solid var(--border)}
+.metric-label{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.4px}
+.metric-val{font-size:18px;font-weight:600;color:var(--text)}
+.metric-val.blue{color:var(--navy)}
+.metric-val.green{color:var(--green-600)}
+.metric-val.amber{color:var(--amber-600)}
+.metric-val.red{color:var(--red-600)}
+
+/* STAGE FILTER */
+.stage-bar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:4px;flex-shrink:0;overflow-x:auto}
+.stage-pill{font-size:11px;padding:3px 11px;border-radius:20px;border:0.5px solid var(--gray-300);background:var(--gray-100);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all 0.15s}
+.stage-pill:hover{border-color:var(--navy);color:var(--navy)}
+.stage-pill.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.stage-pill.leasing{border-color:var(--blue-200)}
+.stage-pill.leasing.active{background:var(--navy)}
+.stage-pill.ops{border-color:var(--green-200)}
+.stage-pill.ops.active{background:var(--green-600)}
+.stage-pill.closed{border-color:var(--red-200)}
+.stage-pill.closed.active{background:var(--red-600)}
+.stage-sep{color:var(--gray-300);font-size:12px;padding:0 2px;flex-shrink:0}
+
+/* BODY */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* DEAL LIST */
+.deal-list-panel{width:300px;flex-shrink:0;background:var(--surface);border-right:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.deal-list-header{padding:10px 14px;border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;align-items:center;justify-content:space-between}
+.deal-list-scroll{flex:1;overflow-y:auto}
+.deal-card{padding:11px 14px;border-bottom:0.5px solid #f0f2f5;cursor:pointer;transition:background 0.1s;border-left:3px solid transparent}
+.deal-card:hover{background:var(--gray-50)}
+.deal-card.active{background:var(--blue-50);border-left-color:var(--navy)}
+.dc-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:2px}
+.dc-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.dc-store{font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.3}
+.dc-badge{font-size:9px;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.dc-badge.leasing{background:var(--blue-100);color:var(--navy);border:0.5px solid var(--blue-200)}
+.dc-badge.ops{background:var(--green-100);color:var(--green-600);border:0.5px solid var(--green-200)}
+.dc-badge.funded{background:var(--amber-100);color:var(--amber-600);border:0.5px solid var(--amber-200)}
+.dc-badge.complete{background:var(--green-50);color:var(--green-600);border:0.5px solid var(--green-200)}
+.dc-badge.denied{background:var(--red-100);color:var(--red-600);border:0.5px solid var(--red-200)}
+.dc-badge.new-customer{background:var(--teal-100);color:var(--teal-600);border:0.5px solid var(--teal-200)}
+.dc-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3)}
+.dc-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--gray-300)}
+
+/* DETAIL PANEL */
+.detail-panel{flex:1;overflow-y:auto;background:var(--bg);padding:14px}
+.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:10px}
+.detail-empty-icon{font-size:32px;opacity:0.3}
+
+/* DETAIL HEADER */
+.detail-header{background:var(--navy);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px}
+.dh-top{display:flex;align-items:flex-start;gap:12px}
+.dh-avatar{width:42px;height:42px;border-radius:var(--radius);background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-0.5px}
+.dh-info{flex:1;min-width:0}
+.dh-name{font-size:16px;font-weight:700;color:#fff;margin-bottom:2px}
+.dh-sub{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.4}
+.dh-badges{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.dh-badge{font-size:10px;padding:2px 8px;border-radius:10px}
+.dh-badge.phase-leasing{background:rgba(122,179,245,0.2);color:#9ac5f8;border:0.5px solid rgba(122,179,245,0.35)}
+.dh-badge.phase-ops{background:rgba(74,222,128,0.15);color:#6ee7a0;border:0.5px solid rgba(74,222,128,0.3)}
+.dh-badge.new-cust{background:rgba(93,202,165,0.2);color:#7ddfba;border:0.5px solid rgba(93,202,165,0.35)}
+.dh-badge.status-denied{background:rgba(240,176,176,0.2);color:#f5a0a0;border:0.5px solid rgba(240,176,176,0.3)}
+.dh-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:0.5px solid rgba(255,255,255,0.12)}
+.dh-btn{font-size:11px;padding:4px 11px;border-radius:6px;border:0.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.1);color:#fff;transition:background 0.15s}
+.dh-btn:hover{background:rgba(255,255,255,0.2)}
+.dh-btn.advance{background:#4a9eff;border-color:#4a9eff;color:#fff;font-weight:600}
+.dh-btn.advance:hover{background:#3a8eef}
+.dh-btn.back{background:rgba(255,255,255,0.06)}
+.dh-btn.deny{background:rgba(220,53,69,0.4);border-color:rgba(220,53,69,0.5);color:#ffb3b3}
+.dh-btn.deny:hover{background:rgba(220,53,69,0.6)}
+.dh-btn.crm{background:rgba(93,202,165,0.25);border-color:rgba(93,202,165,0.4);color:#7ddfba}
+
+/* PIPELINE TRACKER */
+.pipeline-track{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:12px}
+.pt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pt-phase-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.pt-phase-label.leasing{color:var(--navy)}
+.pt-phase-label.ops{color:var(--green-600)}
+.pt-progress-text{font-size:10px;color:var(--text3)}
+.pt-steps{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:2px}
+.pt-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:44px;cursor:pointer}
+.pt-dot-wrap{display:flex;align-items:center;width:100%}
+.pt-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--gray-300);background:var(--gray-100);flex-shrink:0;position:relative;transition:all 0.2s}
+.pt-dot.done{background:var(--navy);border-color:var(--navy)}
+.pt-dot.done-ops{background:var(--green-600);border-color:var(--green-600)}
+.pt-dot.current{background:#fff;border:2px solid var(--navy);box-shadow:0 0 0 3px rgba(26,58,107,0.12)}
+.pt-dot.current::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--navy);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.pt-dot.current-ops{background:#fff;border:2px solid var(--green-600);box-shadow:0 0 0 3px rgba(45,106,31,0.12)}
+.pt-dot.current-ops::after{content:'';width:6px;height:6px;border-radius:50%;background:var(--green-600);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.pt-line{flex:1;height:1.5px;background:var(--gray-200);margin-bottom:14px}
+.pt-line.done{background:var(--navy)}
+.pt-line.done-ops{background:var(--green-600)}
+.pt-name{font-size:9px;color:var(--text3);text-align:center;line-height:1.3;max-width:52px}
+.pt-name.active{color:var(--navy);font-weight:600}
+.pt-name.active-ops{color:var(--green-600);font-weight:600}
+
+/* INFO GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.info-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px}
+.ic-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px}
+.ic-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;gap:8px}
+.ic-row:last-child{margin-bottom:0}
+.ic-key{font-size:12px;color:var(--text2);flex-shrink:0}
+.ic-val{font-size:12px;color:var(--text);font-weight:500;text-align:right;word-break:break-word}
+.ic-val.empty{color:var(--text3);font-weight:400;font-style:italic}
+
+/* DOCUMENTS */
+.section-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px}
+.section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.doc-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--gray-100)}
+.doc-item:last-child{border-bottom:none}
+.doc-icon{width:28px;height:28px;background:var(--red-100);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--red-600);flex-shrink:0}
+.doc-info{flex:1;min-width:0}
+.doc-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.doc-download{font-size:11px;color:var(--navy);padding:3px 8px;border:0.5px solid var(--blue-200);border-radius:5px;background:var(--blue-50);text-decoration:none}
+.upload-area{border:1.5px dashed var(--gray-300);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;transition:all 0.15s;margin-top:8px}
+.upload-area:hover{border-color:var(--navy);background:var(--blue-50)}
+.upload-area input{display:none}
+.upload-label{font-size:12px;color:var(--text2)}
+.upload-label span{color:var(--navy);font-weight:500}
+
+/* NOTES */
+.note-item{padding:9px 0;border-bottom:0.5px solid var(--gray-100)}
+.note-item:last-child{border-bottom:none;padding-bottom:0}
+.note-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.note-author{font-size:11px;font-weight:600;color:var(--text)}
+.note-time{font-size:10px;color:var(--text3)}
+.note-system{font-size:10px;background:var(--gray-100);color:var(--text2);padding:1px 7px;border-radius:10px}
+.note-text{font-size:12px;color:var(--text2);line-height:1.6}
+.note-denied{background:var(--red-50);border-radius:var(--radius);padding:8px 10px;border-left:3px solid var(--red-600)}
+.note-input-wrap{display:flex;gap:6px;margin-bottom:10px}
+.note-input{flex:1;padding:7px 10px;border:0.5px solid var(--gray-300);border-radius:var(--radius);resize:vertical;min-height:60px;outline:none;background:var(--gray-50)}
+.note-input:focus{border-color:var(--navy);background:#fff}
+
+/* ACTIVITY FEED */
+.activity-item{display:flex;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--gray-100)}
+.activity-item:last-child{border-bottom:none}
+.activity-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.activity-icon.stage{background:var(--blue-100);color:var(--navy)}
+.activity-icon.note{background:var(--amber-100);color:var(--amber-600)}
+.activity-icon.doc{background:var(--purple-100);color:var(--purple-600)}
+.activity-icon.email{background:var(--teal-100);color:var(--teal-600)}
+.activity-icon.create{background:var(--green-100);color:var(--green-600)}
+.activity-icon.denied{background:var(--red-100);color:var(--red-600)}
+.activity-body{flex:1;min-width:0}
+.activity-action{font-size:12px;color:var(--text);font-weight:500}
+.activity-detail{font-size:11px;color:var(--text2);margin-top:1px;line-height:1.4}
+.activity-time{font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-top:3px}
+
+/* MODALS */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
+.modal-divider{height:0.5px;background:var(--border);margin:16px 0}
+.form-row{margin-bottom:12px}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:0.4px}
+.form-label.required::after{content:' *';color:var(--red-600)}
+.form-input{width:100%;padding:7px 10px;border:0.5px solid var(--gray-300);border-radius:var(--radius);outline:none;background:var(--gray-50)}
+.form-input:focus{border-color:var(--navy);background:#fff}
+.form-textarea{width:100%;padding:7px 10px;border:0.5px solid var(--gray-300);border-radius:var(--radius);outline:none;resize:vertical;min-height:80px;background:var(--gray-50)}
+.form-textarea:focus{border-color:var(--navy);background:#fff}
+.form-select{width:100%;padding:7px 10px;border:0.5px solid var(--gray-300);border-radius:var(--radius);outline:none;background:var(--gray-50)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.deny-warning{background:var(--red-50);border:0.5px solid var(--red-200);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--red-600);margin-bottom:12px;line-height:1.5}
+
+/* SETTINGS */
+.settings-panel{position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;display:none}
+.settings-panel.open{display:block}
+.settings-inner{max-width:560px;margin:0 auto;padding:24px 16px}
+.settings-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.settings-title{font-size:20px;font-weight:700;color:var(--text)}
+.settings-section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.settings-section-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.settings-row:last-child{margin-bottom:0}
+.settings-label{font-size:13px;color:var(--text);flex:1}
+.settings-hint{font-size:11px;color:var(--text3);margin-top:2px}
+.settings-input{padding:6px 10px;border:0.5px solid var(--gray-300);border-radius:var(--radius);outline:none;background:var(--gray-50);min-width:220px}
+.settings-input:focus{border-color:var(--navy);background:#fff}
+
+/* LOCK SCREEN */
+.lock-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center}
+.lock-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:28px;width:320px;text-align:center;box-shadow:var(--shadow)}
+.lock-icon{font-size:28px;margin-bottom:12px}
+.lock-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
+.lock-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
+.lock-input{width:100%;padding:8px 12px;border:0.5px solid var(--gray-300);border-radius:var(--radius);text-align:center;letter-spacing:4px;font-size:16px;outline:none;margin-bottom:10px}
+.lock-input:focus{border-color:var(--navy)}
+.lock-error{font-size:11px;color:var(--red-600);margin-bottom:8px;display:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--gray-900);color:#fff;padding:10px 16px;border-radius:var(--radius);font-size:13px;z-index:2000;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1}
+.toast.success{background:#1a5c2a}
+.toast.error{background:#7a1a1a}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:10px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .deal-list-panel{width:100%;position:absolute;z-index:50;height:calc(100% - 180px);transform:translateX(-100%);transition:transform 0.25s}
+  .deal-list-panel.open{transform:translateX(0)}
+  .info-grid{grid-template-columns:1fr}
+  .search-input{width:140px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">RB</div>
+  <span class="brand">Ronnoco Deal Dashboard<span class="brand-version">v7</span></span>
+  <div class="topbar-spacer"></div>
+  <div class="sync-badge"><div class="sync-dot connecting" id="syncDot"></div><span id="syncLabel">Connecting…</span></div>
+</div>
+
+<!-- ROLE TABS -->
+<div class="roletabs">
+  <div class="rtab active" data-role="admin" onclick="setRole('admin',this)">Admin</div>
+  <div class="rtab" data-role="sales" onclick="setRole('sales',this)">Sales</div>
+  <div class="rtab" data-role="leasing" onclick="setRole('leasing',this)">Leasing</div>
+  <div class="rtab" data-role="ops" onclick="setRole('ops',this)">Ops</div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="openNewDealModal()">+ New deal</button>
+  <button class="btn" onclick="openImportModal()">↑ Import CSV</button>
+  <button class="btn" onclick="syncJotform()">↻ Sync Jotform</button>
+  <div class="toolbar-spacer"></div>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input class="search-input" id="searchInput" placeholder="Search deals…" oninput="filterDeals()"/>
+  </div>
+  <button class="btn" onclick="openSettings()">⚙</button>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="mTotal">—</div></div>
+  <div class="metric"><div class="metric-label">Leasing</div><div class="metric-val blue" id="mLeasing">—</div></div>
+  <div class="metric"><div class="metric-label">Ops</div><div class="metric-val blue" id="mOps">—</div></div>
+  <div class="metric"><div class="metric-label">Funded</div><div class="metric-val amber" id="mFunded">—</div></div>
+  <div class="metric"><div class="metric-label">Complete</div><div class="metric-val green" id="mComplete">—</div></div>
+  <div class="metric"><div class="metric-label">Closed/Lost</div><div class="metric-val red" id="mClosed">—</div></div>
+</div>
+
+<!-- STAGE FILTER -->
+<div class="stage-bar">
+  <div class="stage-pill active" data-stage="all" onclick="setStageFilter('all',this)">All</div>
+  <span class="stage-sep">›</span>
+  <div class="stage-pill leasing" data-stage="submitted" onclick="setStageFilter('submitted',this)">Submitted</div>
+  <div class="stage-pill leasing" data-stage="credit_sent" onclick="setStageFilter('credit_sent',this)">Credit App Sent</div>
+  <div class="stage-pill leasing" data-stage="credit_received" onclick="setStageFilter('credit_received',this)">Credit App Received</div>
+  <div class="stage-pill leasing" data-stage="credit_approved" onclick="setStageFilter('credit_approved',this)">Credit Approved</div>
+  <div class="stage-pill leasing" data-stage="paperwork_sent" onclick="setStageFilter('paperwork_sent',this)">Paperwork Sent</div>
+  <div class="stage-pill leasing" data-stage="paperwork_received" onclick="setStageFilter('paperwork_received',this)">Paperwork Received</div>
+  <div class="stage-pill leasing" data-stage="funded" onclick="setStageFilter('funded',this)">Funded</div>
+  <span class="stage-sep">›</span>
+  <div class="stage-pill ops" data-stage="customer_setup" onclick="setStageFilter('customer_setup',this)">Customer Setup</div>
+  <div class="stage-pill ops" data-stage="equip_ordered" onclick="setStageFilter('equip_ordered',this)">Equip Ordered</div>
+  <div class="stage-pill ops" data-stage="equip_received" onclick="setStageFilter('equip_received',this)">Equip Received</div>
+  <div class="stage-pill ops" data-stage="install_scheduled" onclick="setStageFilter('install_scheduled',this)">Install Scheduled</div>
+  <div class="stage-pill ops" data-stage="dist_notified" onclick="setStageFilter('dist_notified',this)">Distributor Notified</div>
+  <div class="stage-pill ops" data-stage="installation" onclick="setStageFilter('installation',this)">Installation</div>
+  <div class="stage-pill ops" data-stage="complete" onclick="setStageFilter('complete',this)">Complete</div>
+  <span class="stage-sep">›</span>
+  <div class="stage-pill closed" data-stage="credit_denied" onclick="setStageFilter('credit_denied',this)">Credit Denied</div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+  <!-- DEAL LIST -->
+  <div class="deal-list-panel" id="dealListPanel">
+    <div class="deal-list-header">
+      <span id="dealCountLabel">Loading…</span>
+      <span id="dealListRole" style="font-size:10px;background:var(--blue-100);color:var(--navy);padding:1px 7px;border-radius:10px;border:0.5px solid var(--blue-200)">Admin</span>
+    </div>
+    <div class="deal-list-scroll" id="dealList"></div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">📋</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text2)">Select a deal to view details</div>
+      <div style="font-size:12px">Choose from the list on the left</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-inner">
+    <div class="settings-header">
+      <button class="btn" onclick="closeSettings()">← Back</button>
+      <div class="settings-title">Settings</div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Jotform Connection</div>
+      <div class="form-row">
+        <label class="form-label">API Key</label>
+        <input class="settings-input" id="s-apikey" type="password" placeholder="Paste your Jotform API key"/>
+      </div>
+      <button class="btn btn-primary" onclick="testAndSaveApiKey()">Test &amp; save key</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Email Configuration</div>
+      <div class="form-row">
+        <label class="form-label">CRM Setup email address</label>
+        <input class="settings-input" id="s-crm-email" placeholder="crm-setup@ronnoco.com"/>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Recipient for new customer CRM setup emails</div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">From email address</label>
+        <input class="settings-input" id="s-from-email" placeholder="deals@ronnoco.com"/>
+      </div>
+      <button class="btn btn-primary" onclick="saveEmailSettings()">Save email settings</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Webhook</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Use this URL in Jotform to auto-sync new submissions:</div>
+      <div style="font-size:11px;font-family:monospace;background:var(--gray-50);padding:8px 10px;border-radius:var(--radius);border:0.5px solid var(--border);word-break:break-all;color:var(--navy)" id="webhookUrl"></div>
+      <button class="btn" style="margin-top:8px" onclick="copyWebhook()">Copy webhook URL</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Admin Password</div>
+      <div class="form-row">
+        <label class="form-label">New password</label>
+        <input class="settings-input" id="s-newpass" type="password" placeholder="New password"/>
+      </div>
+      <button class="btn btn-primary" onclick="changePassword()">Update password</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS (rendered dynamically) -->
+<div id="modalContainer"></div>
+
+<script>
+const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWxtZXF1d2p4dnJtZ3BsdGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjYyODksImV4cCI6MjA2MTYwMjI4OX0.YJUqBSyGWSEMGMVSTxBPMcUjJSmEAV06CRhlKz1Mj4g';
+
+const SB_HEADERS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+
+let deals = [];
+let currentRole = 'admin';
+let currentStageFilter = 'all';
+let currentDealId = null;
+let searchQuery = '';
+
+const LEASING_STEPS = ['submitted','credit_sent','credit_received','credit_approved','paperwork_sent','paperwork_received','funded'];
+const OPS_STEPS = ['customer_setup','equip_ordered','equip_received','install_scheduled','dist_notified','installation','complete'];
+const LEASING_LABELS = {submitted:'Submitted',credit_sent:'Credit App Sent',credit_received:'Credit App Received',credit_approved:'Credit Approved',paperwork_sent:'Paperwork Sent',paperwork_received:'Paperwork Received',funded:'Funded'};
+const OPS_LABELS = {customer_setup:'Customer Setup',equip_ordered:'Equip Ordered',equip_received:'Equip Received',install_scheduled:'Install Scheduled',dist_notified:'Dist. Notified',installation:'Installation',complete:'Complete'};
+const ALL_LABELS = {...LEASING_LABELS,...OPS_LABELS,credit_denied:'Credit Denied'};
+
+const ROLE_STEPS = {
+  admin: [...LEASING_STEPS,...OPS_STEPS],
+  sales: [...LEASING_STEPS,...OPS_STEPS],
+  leasing: LEASING_STEPS,
+  ops: OPS_STEPS
+};
+
+async function sbFetch(endpoint, opts={}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, { headers: SB_HEADERS, ...opts });
+  if (!res.ok) throw new Error(await res.text());
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadDeals() {
+  try {
+    const data = await sbFetch('deals?select=*&order=created_at.desc');
+    deals = data || [];
+    updateSync(true);
+    renderDealList();
+    updateMetrics();
+  } catch(e) {
+    updateSync(false);
+    showToast('Failed to load deals: ' + e.message, 'error');
+  }
+}
+
+function updateSync(ok) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  dot.className = 'sync-dot' + (ok ? '' : ' error');
+  lbl.textContent = ok ? 'live sync' : 'disconnected';
+}
+
+function updateMetrics() {
+  const active = deals.filter(d => d.deal_status !== 'closed');
+  document.getElementById('mTotal').textContent = active.length;
+  document.getElementById('mLeasing').textContent = active.filter(d => d.phase === 'leasing' && d.current_step !== 'funded').length;
+  document.getElementById('mOps').textContent = active.filter(d => d.phase === 'ops' && d.current_step !== 'complete').length;
+  document.getElementById('mFunded').textContent = active.filter(d => d.current_step === 'funded').length;
+  document.getElementById('mComplete').textContent = active.filter(d => d.current_step === 'complete').length;
+  document.getElementById('mClosed').textContent = deals.filter(d => d.deal_status === 'closed').length;
+}
+
+function getFilteredDeals() {
+  return deals.filter(d => {
+    if (currentRole === 'leasing' && d.phase === 'ops' && d.deal_status !== 'closed') return false;
+    if (currentRole === 'ops' && d.phase === 'leasing' && d.deal_status !== 'closed') return false;
+    if (currentStageFilter !== 'all' && d.current_step !== currentStageFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const name = `${d.first_name} ${d.last_name}`.toLowerCase();
+      const store = (d.store_name || '').toLowerCase();
+      const rep = (d.sales_rep || '').toLowerCase();
+      if (!name.includes(q) && !store.includes(q) && !rep.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderDealList() {
+  const filtered = getFilteredDeals();
+  const list = document.getElementById('dealList');
+  document.getElementById('dealCountLabel').textContent = `${filtered.length} deal${filtered.length !== 1 ? 's' : ''}`;
+  document.getElementById('dealListRole').textContent = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--text3);font-size:12px">No deals found</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(d => {
+    const name = [d.first_name, d.last_name].filter(Boolean).join(' ') || 'Unknown';
+    const initials = name.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
+    const step = d.current_step;
+    const isClosed = d.deal_status === 'closed';
+    const badgeClass = isClosed ? 'denied' : step === 'complete' ? 'complete' : step === 'funded' ? 'funded' : d.phase === 'ops' ? 'ops' : 'leasing';
+    const badgeLabel = ALL_LABELS[step] || step;
+    const date = new Date(d.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const isActive = d.id === currentDealId;
+    return `<div class="deal-card${isActive?' active':''}" onclick="selectDeal('${d.id}')">
+      <div class="dc-row1">
+        <div class="dc-name">${name}</div>
+        <div class="dc-badge ${badgeClass}">${badgeLabel}</div>
+      </div>
+      <div class="dc-store">${d.store_name || '—'}</div>
+      <div class="dc-meta">
+        ${d.sales_rep ? `<span>${d.sales_rep}</span><span class="dc-meta-dot"></span>` : ''}
+        <span>${date}</span>
+        ${d.is_new_customer ? `<span class="dc-meta-dot"></span><span style="color:var(--teal-600);font-weight:600">New Customer</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function selectDeal(id) {
+  currentDealId = id;
+  renderDealList();
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  const [notes, activity, docs] = await Promise.all([
+    sbFetch(`deal_notes?deal_id=eq.${id}&order=created_at.asc`),
+    sbFetch(`deal_activity?deal_id=eq.${id}&order=created_at.desc`),
+    sbFetch(`deal_documents?deal_id=eq.${id}&order=created_at.desc`)
+  ]);
+  renderDetail(deal, notes||[], activity||[], docs||[]);
+}
+
+function renderDetail(deal, notes, activity, docs) {
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ') || 'Unknown';
+  const initials = name.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
+  const isClosed = deal.deal_status === 'closed';
+  const step = deal.current_step;
+  const isLeasing = deal.phase === 'leasing' || LEASING_STEPS.includes(step);
+  const steps = isLeasing ? LEASING_STEPS : OPS_STEPS;
+  const labels = isLeasing ? LEASING_LABELS : OPS_LABELS;
+  const stepIdx = steps.indexOf(step);
+  const canAdvance = !isClosed && (currentRole === 'admin' || ROLE_STEPS[currentRole].includes(step));
+  const canGoBack = !isClosed && currentRole === 'admin';
+  const isLastStep = stepIdx === steps.length - 1;
+  const isOpsLast = !isLeasing && step === 'complete';
+
+  // Advance/back logic
+  const nextStep = isLeasing && step === 'funded' ? 'customer_setup' :
+    steps[stepIdx + 1] || null;
+  const prevStep = stepIdx > 0 ? steps[stepIdx - 1] :
+    (!isLeasing ? 'funded' : null);
+
+  let actionBtns = '';
+  if (canGoBack && prevStep) actionBtns += `<button class="dh-btn back" onclick="moveDeal('${deal.id}','${prevStep}','${deal.phase}')">← Previous</button>`;
+  if (canAdvance && nextStep && !isOpsLast) actionBtns += `<button class="dh-btn advance" onclick="moveDeal('${deal.id}','${nextStep}',${isLeasing && step==='funded' ? "'ops'" : `'${deal.phase}'`})">Advance: ${labels[nextStep]||OPS_LABELS[nextStep]||'Next'} →</button>`;
+  if (canAdvance && !isClosed && step === 'credit_approved' && (currentRole === 'admin' || currentRole === 'leasing')) {
+    actionBtns += `<button class="dh-btn deny" onclick="openDenyModal('${deal.id}')">✕ Credit Denied</button>`;
+  }
+  if (deal.is_new_customer && currentRole === 'admin' && !isClosed) {
+    actionBtns += `<button class="dh-btn crm" onclick="sendCrmEmail('${deal.id}')">✉ Send CRM Setup</button>`;
+  }
+  if (currentRole === 'admin') actionBtns += `<button class="dh-btn" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
+
+  // Pipeline tracker
+  const trackerSteps = steps.map((s, i) => {
+    const isDone = i < stepIdx;
+    const isCurrent = i === stepIdx;
+    const dotClass = isClosed && step === 'credit_denied' ? '' :
+      isDone ? (isLeasing ? 'done' : 'done-ops') :
+      isCurrent ? (isLeasing ? 'current' : 'current-ops') : '';
+    const nameClass = isCurrent ? (isLeasing ? 'active' : 'active-ops') : '';
+    const lineClass = isDone ? (isLeasing ? 'done' : 'done-ops') : '';
+    return `<div class="pt-step">
+      <div class="pt-dot-wrap">
+        <div class="pt-dot ${dotClass}"></div>
+        ${i < steps.length-1 ? `<div class="pt-line ${lineClass}"></div>` : ''}
+      </div>
+      <div class="pt-name ${nameClass}">${labels[s]||s}</div>
+    </div>`;
+  }).join('');
+
+  const progressText = isClosed ? 'Closed / Lost' :
+    `Step ${Math.max(0,stepIdx)+1} of ${steps.length}`;
+
+  // Info sections
+  const infoCard = (title, rows) => `<div class="info-card">
+    <div class="ic-title">${title}</div>
+    ${rows.map(([k,v]) => `<div class="ic-row"><span class="ic-key">${k}</span><span class="ic-val${!v?' empty':''}">${v||'—'}</span></div>`).join('')}
+  </div>`;
+
+  // Documents
+  const docList = docs.length ? docs.map(d => `
+    <div class="doc-item">
+      <div class="doc-icon">PDF</div>
+      <div class="doc-info">
+        <div class="doc-name">${d.file_name}</div>
+        <div class="doc-meta">${d.uploaded_by||'Uploaded'} · ${fmtDate(d.created_at)}</div>
+      </div>
+      <a class="doc-download" href="${d.file_url}" target="_blank">Download</a>
+    </div>`).join('') : `<div style="font-size:12px;color:var(--text3);padding:8px 0">No documents uploaded yet</div>`;
+
+  const uploadArea = (currentRole === 'admin' || currentRole === 'leasing') ? `
+    <div class="upload-area" onclick="document.getElementById('fileInput_${deal.id}').click()">
+      <input type="file" id="fileInput_${deal.id}" accept=".pdf" style="display:none" onchange="uploadDoc('${deal.id}',this)"/>
+      <div class="upload-label">Drop PDF or <span>click to upload</span></div>
+    </div>` : '';
+
+  // Notes
+  const notesList = notes.length ? notes.map(n => `
+    <div class="note-item">
+      <div class="note-header">
+        <span class="note-author">${n.author}</span>
+        <span class="note-time">${fmtDate(n.created_at)}</span>
+        ${n.author === 'System' ? '<span class="note-system">system</span>' : ''}
+      </div>
+      <div class="note-text${n.author==='System'&&n.note_text.toLowerCase().includes('denied')?' note-denied':''}">${n.note_text}</div>
+    </div>`).join('') : `<div style="font-size:12px;color:var(--text3);padding:4px 0">No notes yet</div>`;
+
+  // Activity feed
+  const activityList = activity.length ? activity.map(a => {
+    const iconClass = a.action.toLowerCase().includes('note') ? 'note' :
+      a.action.toLowerCase().includes('doc') || a.action.toLowerCase().includes('upload') ? 'doc' :
+      a.action.toLowerCase().includes('email') ? 'email' :
+      a.action.toLowerCase().includes('creat') ? 'create' :
+      a.action.toLowerCase().includes('denied') ? 'denied' : 'stage';
+    const icon = iconClass==='note'?'📝':iconClass==='doc'?'📄':iconClass==='email'?'✉':iconClass==='create'?'✓':iconClass==='denied'?'✕':'→';
+    return `<div class="activity-item">
+      <div class="activity-icon ${iconClass}">${icon}</div>
+      <div class="activity-body">
+        <div class="activity-action">${a.action}</div>
+        ${a.detail ? `<div class="activity-detail">${a.detail}${a.actor ? ` · ${a.actor}` : ''}</div>` : (a.actor ? `<div class="activity-detail">${a.actor}</div>` : '')}
+      </div>
+      <div class="activity-time">${fmtDate(a.created_at)}</div>
+    </div>`;
+  }).join('') : `<div style="font-size:12px;color:var(--text3)">No activity yet</div>`;
+
+  document.getElementById('detailPanel').innerHTML = `
+    <div class="detail-header">
+      <div class="dh-top">
+        <div class="dh-avatar">${initials}</div>
+        <div class="dh-info">
+          <div class="dh-name">${name}</div>
+          <div class="dh-sub">${deal.store_name||''}${deal.address ? ' · '+deal.address : ''}${deal.deal_type ? ' · '+deal.deal_type : ''}</div>
+          <div class="dh-badges">
+            <span class="dh-badge phase-${deal.phase}">${isLeasing?'Leasing':'Operations'}</span>
+            <span class="dh-badge phase-${deal.phase}">${ALL_LABELS[step]||step}</span>
+            ${deal.is_new_customer ? '<span class="dh-badge new-cust">New Customer</span>' : ''}
+            ${isClosed ? '<span class="dh-badge status-denied">Closed / Lost</span>' : ''}
+          </div>
+        </div>
+      </div>
+      ${actionBtns ? `<div class="dh-actions">${actionBtns}</div>` : ''}
+    </div>
+
+    <div class="pipeline-track">
+      <div class="pt-header">
+        <span class="pt-phase-label ${deal.phase}">${isLeasing ? 'Leasing phase' : 'Operations phase'}</span>
+        <span class="pt-progress-text">${progressText}</span>
+      </div>
+      <div class="pt-steps">${trackerSteps}</div>
+    </div>
+
+    <div class="info-grid">
+      ${infoCard('Contact & Store',[
+        ['Email', deal.email ? `<a href="mailto:${deal.email}" style="color:var(--navy)">${deal.email}</a>` : ''],
+        ['Phone', deal.phone],['Store', deal.store_name],['Address', deal.address],['Chain store', deal.chain_store]
+      ])}
+      ${infoCard('Deal & Sales',[
+        ['Sales rep', deal.sales_rep],['ROM', deal.rom],['Deal type', deal.deal_type||deal.purchase_type],
+        ['EQ cost', deal.total_eq_cost],['Coffee program', deal.coffee_program],['Target install', deal.target_install_date]
+      ])}
+      ${infoCard('Distribution',[
+        ['Distributor', deal.parent_distributor],['Sub group', deal.sub_group],
+        ['Dist. rep email', deal.distributor_rep_email],['Emergency install', deal.emergency_install]
+      ])}
+      ${infoCard('Graphics & Equipment',[
+        ['Package', deal.graphics_package],['Equipment', deal.equipment_selection],
+        ['Account #', deal.customer_account],['Rep email', deal.sales_rep_email]
+      ])}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Documents <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">${docs.length} file${docs.length!==1?'s':''}</span></div>
+      ${docList}
+      ${uploadArea}
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Notes</div>
+      <div class="note-input-wrap">
+        <textarea class="note-input" id="noteInput_${deal.id}" placeholder="Add a note…"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn btn-primary" onclick="addNote('${deal.id}')">Add note</button>
+      </div>
+      <div id="notesList_${deal.id}">${notesList}</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Activity</div>
+      <div id="activityList_${deal.id}">${activityList}</div>
+    </div>
+  `;
+}
+
+async function moveDeal(id, newStep, newPhase) {
+  const deal = deals.find(d => d.id === id);
+  if (!deal) return;
+  const oldStep = deal.current_step;
+  try {
+    await sbFetch(`deals?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_step: newStep, phase: newPhase, updated_at: new Date().toISOString() })
+    });
+    await logActivity(id, 'Stage updated', `${ALL_LABELS[oldStep]||oldStep} → ${ALL_LABELS[newStep]||newStep}`, currentRole);
+    // Notify on install scheduled
+    if (newStep === 'install_scheduled') {
+      await sendInstallNotification(deal);
+    }
+    deal.current_step = newStep;
+    deal.phase = newPhase;
+    updateMetrics();
+    renderDealList();
+    selectDeal(id);
+    showToast('Stage updated to: ' + (ALL_LABELS[newStep]||newStep), 'success');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function sendInstallNotification(deal) {
+  const recipients = [deal.sales_rep_email, deal.distributor_rep_email].filter(Boolean);
+  if (!recipients.length) return;
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  const body = buildEmailHtml('Installation Scheduled', deal, `
+    <p>This is to notify you that the installation for the following deal has been scheduled.</p>
+    <p><strong>Customer:</strong> ${name}<br/>
+    <strong>Store:</strong> ${deal.store_name||'—'}<br/>
+    <strong>Address:</strong> ${deal.address||'—'}<br/>
+    <strong>Target Install Date:</strong> ${deal.target_install_date||'TBD'}<br/>
+    <strong>Sales Rep:</strong> ${deal.sales_rep||'—'}</p>
+    <p>Please log into the Ronnoco Deal Dashboard for full details.</p>`);
+  await sendEmail(recipients, `Installation Scheduled – ${name} / ${deal.store_name||''}`, body);
+  await logActivity(deal.id, 'Email sent', 'Installation scheduled notification', 'System');
+}
+
+async function sendCrmEmail(dealId) {
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  const crmEmail = localStorage.getItem('crm_email');
+  if (!crmEmail) { showToast('Set CRM email in Settings first', 'error'); return; }
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  const body = buildEmailHtml('New Customer CRM Setup', deal, `
+    <p>Please set up the following new customer in the CRM:</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      ${[['Name',name],['Email',deal.email],['Phone',deal.phone],['Store',deal.store_name],['Address',deal.address],
+         ['Deal Type',deal.deal_type||deal.purchase_type],['Sales Rep',deal.sales_rep],['Distributor',deal.parent_distributor],
+         ['Account #',deal.customer_account],['Coffee Program',deal.coffee_program]].map(([k,v])=>
+        `<tr><td style="padding:4px 8px;color:#666;width:140px">${k}</td><td style="padding:4px 8px;font-weight:600">${v||'—'}</td></tr>`).join('')}
+    </table>`);
+  await sendEmail([crmEmail], `New Customer Setup – ${name}`, body);
+  await logActivity(dealId, 'Email sent', 'CRM setup email sent', currentRole);
+  showToast('CRM setup email sent!', 'success');
+  selectDeal(dealId);
+}
+
+function buildEmailHtml(subject, deal, content) {
+  return `<div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+    <div style="background:#1a3a6b;padding:16px 20px;border-radius:8px 8px 0 0">
+      <div style="color:#fff;font-size:16px;font-weight:700">Ronnoco Deal Dashboard</div>
+      <div style="color:rgba(255,255,255,0.7);font-size:13px">${subject}</div>
+    </div>
+    <div style="background:#fff;padding:20px;border:1px solid #e2e6ed;border-top:none;border-radius:0 0 8px 8px">
+      ${content}
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e6ed;font-size:11px;color:#8a9ab0">
+        Sent from Ronnoco Deal Dashboard · ${new Date().toLocaleString()}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function sendEmail(to, subject, body) {
+  try {
+    await fetch('/.netlify/functions/send-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ to, subject, body })
+    });
+  } catch(e) { console.warn('Email send failed:', e); }
+}
+
+function openDenyModal(dealId) {
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  showModal(`
+    <div class="modal-title">Credit Denied</div>
+    <div class="modal-sub">${name} · ${deal.store_name||''}</div>
+    <div class="deny-warning">⚠ This will close the deal as Lost and notify the sales rep by email. This action cannot be undone without Admin access.</div>
+    <div class="form-row">
+      <label class="form-label required">Reason for decline</label>
+      <textarea class="form-textarea" id="denyReason" placeholder="Explain why credit was denied…" rows="4"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="submitDeny('${dealId}')">Confirm Credit Denied</button>
+    </div>
+  `);
+}
+
+async function submitDeny(dealId) {
+  const reason = document.getElementById('denyReason').value.trim();
+  if (!reason) { showToast('Please enter a decline reason', 'error'); return; }
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  try {
+    await sbFetch(`deals?id=eq.${dealId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_step: 'credit_denied', deal_status: 'closed', denied_reason: reason, updated_at: new Date().toISOString() })
+    });
+    await sbFetch('deal_notes', {
+      method: 'POST',
+      body: JSON.stringify({ deal_id: dealId, note_text: `Credit Denied: ${reason}`, author: 'System' })
+    });
+    await logActivity(dealId, 'Credit denied', reason, currentRole);
+    // Email sales rep
+    const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+    if (deal.sales_rep_email) {
+      const body = buildEmailHtml('Credit Denied Notification', deal, `
+        <p>Unfortunately, the credit application for the following deal has been <strong>denied</strong>.</p>
+        <p><strong>Customer:</strong> ${name}<br/>
+        <strong>Store:</strong> ${deal.store_name||'—'}<br/>
+        <strong>Reason:</strong> ${reason}</p>
+        ${buildDealDetailsTable(deal)}
+        <p>Please follow up with the customer as needed.</p>`);
+      await sendEmail([deal.sales_rep_email], `Credit Denied – ${name} / ${deal.store_name||''}`, body);
+      await logActivity(dealId, 'Email sent', `Credit denied notification sent to ${deal.sales_rep_email}`, 'System');
+    }
+    deal.current_step = 'credit_denied';
+    deal.deal_status = 'closed';
+    deal.denied_reason = reason;
+    updateMetrics();
+    renderDealList();
+    closeModal();
+    selectDeal(dealId);
+    showToast('Deal marked as Credit Denied', 'error');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function buildDealDetailsTable(deal) {
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  const rows = [['Customer',name],['Store',deal.store_name],['Email',deal.email],['Phone',deal.phone],
+    ['Address',deal.address],['Deal Type',deal.deal_type||deal.purchase_type],['Sales Rep',deal.sales_rep],
+    ['Distributor',deal.parent_distributor],['EQ Cost',deal.total_eq_cost],['Target Install',deal.target_install_date]];
+  return `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px">
+    ${rows.map(([k,v])=>`<tr><td style="padding:4px 8px;color:#666;width:130px;border-bottom:1px solid #f0f0f0">${k}</td>
+    <td style="padding:4px 8px;font-weight:600;border-bottom:1px solid #f0f0f0">${v||'—'}</td></tr>`).join('')}
+  </table>`;
+}
+
+async function logActivity(dealId, action, detail, actor) {
+  try {
+    await sbFetch('deal_activity', {
+      method: 'POST',
+      body: JSON.stringify({ deal_id: dealId, action, detail, actor })
+    });
+  } catch(e) { console.warn('Activity log failed:', e); }
+}
+
+async function addNote(dealId) {
+  const input = document.getElementById(`noteInput_${dealId}`);
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    const note = await sbFetch('deal_notes', {
+      method: 'POST',
+      body: JSON.stringify({ deal_id: dealId, note_text: text, author: currentRole.charAt(0).toUpperCase() + currentRole.slice(1) })
+    });
+    await logActivity(dealId, 'Note added', text.slice(0,80)+(text.length>80?'…':''), currentRole);
+    input.value = '';
+    showToast('Note added', 'success');
+    selectDeal(dealId);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function uploadDoc(dealId, input) {
+  const file = input.files[0];
+  if (!file || !file.name.endsWith('.pdf')) { showToast('Please select a PDF file', 'error'); return; }
+  showToast('Uploading…');
+  try {
+    const fileName = `${dealId}/${Date.now()}_${file.name}`;
+    const uploadRes = await fetch(`${SB_URL}/storage/v1/object/deal-documents/${fileName}`, {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/pdf' },
+      body: file
+    });
+    if (!uploadRes.ok) throw new Error('Upload failed');
+    const fileUrl = `${SB_URL}/storage/v1/object/public/deal-documents/${fileName}`;
+    await sbFetch('deal_documents', {
+      method: 'POST',
+      body: JSON.stringify({ deal_id: dealId, file_name: file.name, file_url: fileUrl, file_size: file.size, uploaded_by: currentRole })
+    });
+    await logActivity(dealId, 'Document uploaded', file.name, currentRole);
+    showToast('Document uploaded!', 'success');
+    selectDeal(dealId);
+  } catch(e) {
+    showToast('Upload error: ' + e.message, 'error');
+  }
+}
+
+function openNewDealModal() {
+  showModal(`
+    <div class="modal-title">New Deal</div>
+    <div class="modal-sub">Create a deal manually</div>
+    <div class="form-row"><label class="form-label required">First name</label><input class="form-input" id="nd-first" placeholder="First name"/></div>
+    <div class="form-row"><label class="form-label">Last name</label><input class="form-input" id="nd-last" placeholder="Last name"/></div>
+    <div class="form-row"><label class="form-label required">Email</label><input class="form-input" id="nd-email" type="email" placeholder="customer@email.com"/></div>
+    <div class="form-row"><label class="form-label">Phone</label><input class="form-input" id="nd-phone" placeholder="Phone number"/></div>
+    <div class="form-row"><label class="form-label">Store name</label><input class="form-input" id="nd-store" placeholder="Store / business name"/></div>
+    <div class="form-row"><label class="form-label">Sales rep</label><input class="form-input" id="nd-rep" placeholder="Sales rep name"/></div>
+    <div class="form-row"><label class="form-label">Sales rep email</label><input class="form-input" id="nd-rep-email" type="email" placeholder="rep@ronnoco.com"/></div>
+    <div class="form-row"><label class="form-label">Distributor rep email</label><input class="form-input" id="nd-dist-email" type="email" placeholder="rep@distributor.com"/></div>
+    <div class="form-row"><label class="form-label">Deal type</label>
+      <select class="form-select" id="nd-type">
+        <option>Equipment Lease</option><option>Finance Equipment</option>
+        <option>Purchase From Ronnoco</option><option>Loan Equipment</option>
+      </select>
+    </div>
+    <div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="nd-new-cust" style="width:16px;height:16px"/>
+      <label for="nd-new-cust" style="font-size:13px;color:var(--text)">New Customer</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createDeal()">Create deal</button>
+    </div>
+  `);
+}
+
+async function createDeal() {
+  const first = document.getElementById('nd-first').value.trim();
+  const email = document.getElementById('nd-email').value.trim();
+  if (!first || !email) { showToast('First name and email are required', 'error'); return; }
+  try {
+    const deal = {
+      first_name: first, last_name: document.getElementById('nd-last').value.trim(),
+      email, phone: document.getElementById('nd-phone').value.trim(),
+      store_name: document.getElementById('nd-store').value.trim(),
+      sales_rep: document.getElementById('nd-rep').value.trim(),
+      sales_rep_email: document.getElementById('nd-rep-email').value.trim(),
+      distributor_rep_email: document.getElementById('nd-dist-email').value.trim(),
+      deal_type: document.getElementById('nd-type').value,
+      is_new_customer: document.getElementById('nd-new-cust').checked,
+      current_step: 'submitted', phase: 'leasing', deal_status: 'active'
+    };
+    const result = await sbFetch('deals', { method: 'POST', headers: {...SB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(deal) });
+    const newDeal = Array.isArray(result) ? result[0] : result;
+    await logActivity(newDeal.id, 'Deal created', 'Created manually', currentRole);
+    closeModal();
+    await loadDeals();
+    selectDeal(newDeal.id);
+    showToast('Deal created!', 'success');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function openImportModal() {
+  showModal(`
+    <div class="modal-title">Import CSV from Jotform</div>
+    <div class="modal-sub">Export from Jotform Tables → ··· → Export as CSV, then upload here</div>
+    <div class="upload-area" onclick="document.getElementById('csvFile').click()" style="margin:0">
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCsv(this)"/>
+      <div class="upload-label">Drop CSV or <span>click to upload</span></div>
+    </div>
+    <div id="importStatus" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>
+  `);
+}
+
+async function importCsv(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('importStatus');
+  status.textContent = 'Reading CSV…';
+  const text = await file.text();
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) { status.textContent = 'No data found in CSV'; return; }
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+  const col = (row, ...keys) => {
+    for (const k of keys) {
+      const i = headers.findIndex(h => h.includes(k));
+      if (i >= 0 && row[i]) return row[i].replace(/^"|"$/g,'').trim();
+    }
+    return '';
+  };
+  let imported = 0, skipped = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(',');
+    const subId = col(row,'submission id','submissionid');
+    if (subId) {
+      const check = await sbFetch(`deals?jotform_submission_id=eq.${subId}&select=id`);
+      if (check && check.length) { skipped++; continue; }
+    }
+    const deal = {
+      jotform_submission_id: subId,
+      first_name: col(row,'first name','firstname') || 'Unknown',
+      last_name: col(row,'last name','lastname'),
+      email: col(row,'email'), phone: col(row,'phone','cell'),
+      store_name: col(row,'store','business','dba'),
+      address: col(row,'address','street'),
+      sales_rep: col(row,'sales rep','rep name'),
+      sales_rep_email: col(row,'rep email','sales rep email'),
+      distributor_rep_email: col(row,'dist rep email','distributor rep email'),
+      rom: col(row,'rom','region'),
+      deal_type: col(row,'deal type','type') || 'Equipment Lease',
+      purchase_type: col(row,'purchase type','applicable'),
+      total_eq_cost: col(row,'eq cost','equipment cost'),
+      parent_distributor: col(row,'distributor','parent dist'),
+      target_install_date: col(row,'install date','target install'),
+      graphics_package: col(row,'graphics package','graphics'),
+      emergency_install: col(row,'emergency') || 'No',
+      coffee_program: col(row,'coffee program'),
+      chain_store: col(row,'chain store') || 'No',
+      customer_account: col(row,'account number','customer account'),
+      sub_group: col(row,'sub group'),
+      notes: col(row,'notes','additional'),
+      is_new_customer: col(row,'new customer').toLowerCase().includes('yes'),
+      current_step: col(row,'current step') || 'submitted',
+      phase: col(row,'phase') || 'leasing',
+      deal_status: 'active', raw_csv: {}
+    };
+    try {
+      await sbFetch('deals', { method: 'POST', body: JSON.stringify(deal) });
+      imported++;
+      status.textContent = `Importing… (${imported} done)`;
+    } catch(e) { skipped++; }
+  }
+  status.textContent = `Done! ${imported} imported, ${skipped} skipped`;
+  await loadDeals();
+}
+
+async function syncJotform() {
+  const apiKey = localStorage.getItem('jotform_api_key');
+  if (!apiKey) { showToast('Set Jotform API key in Settings first', 'error'); openSettings(); return; }
+  showToast('Syncing Jotform…');
+  try {
+    const res = await fetch(`/.netlify/functions/jotform?path=form/260154983685872/submissions&apiKey=${apiKey}`);
+    const data = await res.json();
+    const subs = data.content || [];
+    let added = 0;
+    for (const sub of subs) {
+      const existing = await sbFetch(`deals?jotform_submission_id=eq.${sub.id}&select=id`);
+      if (existing && existing.length) continue;
+      added++;
+    }
+    await loadDeals();
+    showToast(`Sync complete. ${added} new deal${added!==1?'s':''} added`, 'success');
+  } catch(e) {
+    showToast('Sync failed: ' + e.message, 'error');
+  }
+}
+
+async function confirmDelete(dealId) {
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  showModal(`
+    <div class="modal-title">Delete Deal</div>
+    <div class="modal-sub">Are you sure you want to permanently delete <strong>${name}</strong>?</div>
+    <div class="deny-warning">This cannot be undone. All notes, documents, and activity will be deleted.</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteDeal('${dealId}')">Delete permanently</button>
+    </div>
+  `);
+}
+
+async function deleteDeal(id) {
+  try {
+    await sbFetch(`deals?id=eq.${id}`, { method: 'DELETE' });
+    deals = deals.filter(d => d.id !== id);
+    currentDealId = null;
+    updateMetrics();
+    renderDealList();
+    document.getElementById('detailPanel').innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">📋</div><div style="font-size:14px;font-weight:600;color:var(--text2)">Select a deal to view details</div></div>`;
+    closeModal();
+    showToast('Deal deleted', 'error');
+  } catch(e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+function setRole(role, el) {
+  currentRole = role;
+  document.querySelectorAll('.rtab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDealList();
+  if (currentDealId) selectDeal(currentDealId);
+}
+
+function setStageFilter(stage, el) {
+  currentStageFilter = stage;
+  document.querySelectorAll('.stage-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderDealList();
+}
+
+function filterDeals() {
+  searchQuery = document.getElementById('searchInput').value;
+  renderDealList();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' +
+    d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+function showModal(html) {
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">${html}</div>
+    </div>`;
+}
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 3000);
+}
+
+function openSettings() {
+  document.getElementById('settingsPanel').classList.add('open');
+  document.getElementById('s-apikey').value = localStorage.getItem('jotform_api_key') || '';
+  document.getElementById('s-crm-email').value = localStorage.getItem('crm_email') || '';
+  document.getElementById('s-from-email').value = localStorage.getItem('from_email') || '';
+  document.getElementById('webhookUrl').textContent = window.location.origin + '/.netlify/functions/webhook';
+}
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+
+async function testAndSaveApiKey() {
+  const key = document.getElementById('s-apikey').value.trim();
+  if (!key) { showToast('Enter an API key', 'error'); return; }
+  showToast('Testing key…');
+  try {
+    const res = await fetch(`/.netlify/functions/jotform?path=user&apiKey=${key}`);
+    const data = await res.json();
+    if (data.responseCode === 200) {
+      localStorage.setItem('jotform_api_key', key);
+      showToast('API key saved!', 'success');
+    } else {
+      showToast('Invalid key: ' + (data.message||'unknown error'), 'error');
+    }
+  } catch(e) {
+    showToast('Test failed: ' + e.message, 'error');
+  }
+}
+
+function saveEmailSettings() {
+  localStorage.setItem('crm_email', document.getElementById('s-crm-email').value.trim());
+  localStorage.setItem('from_email', document.getElementById('s-from-email').value.trim());
+  showToast('Email settings saved!', 'success');
+}
+
+function changePassword() {
+  const np = document.getElementById('s-newpass').value.trim();
+  if (!np) return;
+  localStorage.setItem('admin_pass', np);
+  document.getElementById('s-newpass').value = '';
+  showToast('Password updated!', 'success');
+}
+
+function copyWebhook() {
+  const url = window.location.origin + '/.netlify/functions/webhook';
+  navigator.clipboard.writeText(url).then(() => showToast('Webhook URL copied!', 'success'));
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  loadDeals();
+  setInterval(loadDeals, 60000);
+});
+</script>
+</body>
+</html>
