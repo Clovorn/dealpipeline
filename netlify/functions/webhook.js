@@ -73,7 +73,7 @@ exports.handler = async (event) => {
     } else {
       const ins = await fetch(`${SB_URL}/rest/v1/deals`, {
         method: 'POST',
-        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation,resolution=ignore-duplicates' },
         body: JSON.stringify(deal)
       });
       const inserted = await ins.json();
