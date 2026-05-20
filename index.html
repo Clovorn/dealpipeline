@@ -1079,19 +1079,16 @@ async function importCsv(input) {
 async function syncJotform() {
   const apiKey = localStorage.getItem('jotform_api_key');
   if (!apiKey) { showToast('Set Jotform API key in Settings first', 'error'); openSettings(); return; }
-  showToast('Syncing Jotform…');
+  showToast('Syncing Jotform submissions…');
   try {
-    const res = await fetch(`/.netlify/functions/jotform?path=form/260154983685872/submissions&apiKey=${apiKey}`);
+    const res = await fetch('/.netlify/functions/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
+    });
     const data = await res.json();
-    const subs = data.content || [];
-    let added = 0;
-    for (const sub of subs) {
-      const existing = await sbFetch(`deals?jotform_submission_id=eq.${sub.id}&select=id`);
-      if (existing && existing.length) continue;
-      added++;
-    }
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Sync failed');
     await loadDeals();
-    showToast(`Sync complete. ${added} new deal${added!==1?'s':''} added`, 'success');
+    showToast(`Sync complete — ${data.added} new, ${data.updated} updated`, 'success');
   } catch(e) {
     showToast('Sync failed: ' + e.message, 'error');
   }
