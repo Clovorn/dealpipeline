@@ -538,9 +538,9 @@ function updateMetrics() {
   document.getElementById('mClosed').textContent = closed.length;
   document.getElementById('mClosedVal').textContent = '';
 
-  // Ops = ALL deals in ops phase (active + complete) — total funded value in ops
-  document.getElementById('mOps').textContent = opsAll.length;
-  document.getElementById('mOpsVal').textContent = fmtCurrency(sumCost(opsAll));
+  // Ops = active ops deals only (matches Ops tab — excludes Complete)
+  document.getElementById('mOps').textContent = opsActive.length;
+  document.getElementById('mOpsVal').textContent = fmtCurrency(sumCost(opsActive));
 
   // Complete = all completed deals and their total value
   document.getElementById('mComplete').textContent = complete.length;
