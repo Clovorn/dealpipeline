@@ -172,19 +172,22 @@ function isJunkName(name) {
 function isValidSubmission(sub) {
   const answers = sub.answers || {};
   const contactName = getField(answers, 'contact name');
-  const storeName = getField(answers, 'store name');
-  const salesRep = getField(answers, 'ronnoco sales rep');
-  const salesRepEmail = getField(answers, 'ronnoco sales rep email');
+  const firstName   = getField(answers, 'first name');
+  const storeName   = getField(answers, 'store name', 'doing business as');
+  const salesRep    = getField(answers, 'ronnoco sales rep assigned', 'ronnoco sales rep');
 
-  // Must have store name + (contact or sales rep)
-  if (!storeName || (!contactName && !salesRep)) return false;
+  console.log(`[isValid] id=${sub.id} store="${storeName}" contact="${contactName}" first="${firstName}" rep="${salesRep}"`);
 
-  // Reject obvious junk/test names
-  if (isJunkName(storeName)) return false;
+  // Must have a store name
+  if (!storeName) { console.log('[isValid] SKIP no store'); return false; }
 
-  // Reject if sales rep email is blank or looks fake (real submissions always have rep email)
-  if (!salesRepEmail && !salesRep) return false;
+  // Must have at least one identifier
+  if (!contactName && !firstName && !salesRep) { console.log('[isValid] SKIP no contact/rep'); return false; }
 
+  // Reject junk names
+  if (isJunkName(storeName)) { console.log(`[isValid] SKIP junk: ${storeName}`); return false; }
+
+  console.log(`[isValid] PASS: ${storeName}`);
   return true;
 }
 
