@@ -65,6 +65,10 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .metric-val.green{color:var(--green-600)}
 .metric-val.amber{color:var(--amber-600)}
 .metric-val.red{color:var(--red-600)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:1px;font-weight:500}
+.metric-sub.blue{color:#2a5298}
+.metric-sub.green{color:var(--green-600)}
+.metric-sub.amber{color:var(--amber-600)}
 
 /* STAGE FILTER */
 .stage-bar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:4px;flex-shrink:0;overflow-x:auto}
@@ -319,12 +323,12 @@ input,textarea,select{font-family:inherit;font-size:13px}
 
 <!-- METRICS -->
 <div class="metrics">
-  <div class="metric"><div class="metric-label">Total</div><div class="metric-val" id="mTotal">—</div></div>
-  <div class="metric"><div class="metric-label">Leasing</div><div class="metric-val blue" id="mLeasing">—</div></div>
-  <div class="metric"><div class="metric-label">Ops</div><div class="metric-val blue" id="mOps">—</div></div>
-  <div class="metric"><div class="metric-label">Funded</div><div class="metric-val amber" id="mFunded">—</div></div>
-  <div class="metric"><div class="metric-label">Complete</div><div class="metric-val green" id="mComplete">—</div></div>
-  <div class="metric"><div class="metric-label">Closed/Lost</div><div class="metric-val red" id="mClosed">—</div></div>
+  <div class="metric"><div class="metric-label">Total Active</div><div class="metric-val" id="mTotal">—</div><div class="metric-sub" id="mTotalVal"></div></div>
+  <div class="metric"><div class="metric-label">In Leasing</div><div class="metric-val blue" id="mLeasing">—</div><div class="metric-sub blue" id="mLeasingVal"></div></div>
+  <div class="metric"><div class="metric-label">In Ops</div><div class="metric-val blue" id="mOps">—</div><div class="metric-sub blue" id="mOpsVal"></div></div>
+  <div class="metric"><div class="metric-label">Funded</div><div class="metric-val amber" id="mFunded">—</div><div class="metric-sub amber" id="mFundedVal"></div></div>
+  <div class="metric"><div class="metric-label">Complete</div><div class="metric-val green" id="mComplete">—</div><div class="metric-sub green" id="mCompleteVal"></div></div>
+  <div class="metric"><div class="metric-label">Closed/Lost</div><div class="metric-val red" id="mClosed">—</div><div class="metric-sub" id="mClosedVal"></div></div>
 </div>
 
 <!-- STAGE FILTER -->
@@ -469,14 +473,48 @@ function updateSync(ok) {
   lbl.textContent = ok ? 'live sync' : 'disconnected';
 }
 
+function parseCost(val) {
+  if (!val) return 0;
+  const n = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function fmtCurrency(val) {
+  if (val === 0) return '';
+  if (val >= 1000000) return '$' + (val/1000000).toFixed(1) + 'M';
+  if (val >= 1000) return '$' + (val/1000).toFixed(1) + 'K';
+  return '$' + val.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function sumCost(arr) {
+  return arr.reduce((s, d) => s + parseCost(d.total_eq_cost), 0);
+}
+
 function updateMetrics() {
   const active = deals.filter(d => d.deal_status !== 'closed');
+  const leasing = active.filter(d => d.phase === 'leasing' && d.current_step !== 'funded');
+  const ops = active.filter(d => d.phase === 'ops' && d.current_step !== 'complete');
+  const funded = active.filter(d => d.current_step === 'funded');
+  const complete = active.filter(d => d.current_step === 'complete');
+  const closed = deals.filter(d => d.deal_status === 'closed');
+
   document.getElementById('mTotal').textContent = active.length;
-  document.getElementById('mLeasing').textContent = active.filter(d => d.phase === 'leasing' && d.current_step !== 'funded').length;
-  document.getElementById('mOps').textContent = active.filter(d => d.phase === 'ops' && d.current_step !== 'complete').length;
-  document.getElementById('mFunded').textContent = active.filter(d => d.current_step === 'funded').length;
-  document.getElementById('mComplete').textContent = active.filter(d => d.current_step === 'complete').length;
-  document.getElementById('mClosed').textContent = deals.filter(d => d.deal_status === 'closed').length;
+  document.getElementById('mTotalVal').textContent = fmtCurrency(sumCost(active));
+
+  document.getElementById('mLeasing').textContent = leasing.length;
+  document.getElementById('mLeasingVal').textContent = fmtCurrency(sumCost(leasing));
+
+  document.getElementById('mOps').textContent = ops.length;
+  document.getElementById('mOpsVal').textContent = fmtCurrency(sumCost(ops));
+
+  document.getElementById('mFunded').textContent = funded.length;
+  document.getElementById('mFundedVal').textContent = fmtCurrency(sumCost(funded));
+
+  document.getElementById('mComplete').textContent = complete.length;
+  document.getElementById('mCompleteVal').textContent = fmtCurrency(sumCost(complete));
+
+  document.getElementById('mClosed').textContent = closed.length;
+  document.getElementById('mClosedVal').textContent = '';
 }
 
 function getFilteredDeals() {
