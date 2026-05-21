@@ -119,7 +119,7 @@ exports.handler = async (event) => {
     let hasMore = true;
 
     while (hasMore) {
-      const url = `https://api.jotform.com/form/${FORM_ID}/submissions?apiKey=${apiKey}&limit=${limit}&offset=${offset}&orderby=created_at,DESC`;
+      const url = `https://ronnoco.jotform.com/API/form/${FORM_ID}/submissions?apiKey=${apiKey}&limit=${limit}&offset=${offset}&orderby=created_at,DESC`;
       const res = await fetch(url);
       const data = await res.json();
 
