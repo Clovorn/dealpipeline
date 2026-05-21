@@ -1,7 +1,7 @@
 const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const SENDGRID_KEY = process.env.SENDGRID_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@ronnoco.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'donotreply@ronnoco.com';
 
 async function sbFetch(path) {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
@@ -108,6 +108,7 @@ exports.handler = async () => {
     </div>
 
     <p style="font-size:10px;color:#c0c8d4;margin:14px 0 0;text-align:center">Ronnoco Deal Dashboard · Automated weekly digest</p>
+      <p style="font-size:10px;color:#c0c8d4;margin:4px 0 0;text-align:center">This is an automated notification from an unmonitored email address. Please do not reply.</p>
   </div>
 </div>
 </body></html>`;

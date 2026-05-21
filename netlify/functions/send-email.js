@@ -4,7 +4,7 @@ exports.handler = async (event) => {
   if (!to || !subject || !body) return { statusCode: 400, body: JSON.stringify({ error: 'Missing fields' }) };
 
   const SENDGRID_KEY = process.env.SENDGRID_API_KEY;
-  const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@ronnoco.com';
+  const FROM_EMAIL = process.env.FROM_EMAIL || 'donotreply@ronnoco.com';
 
   if (!SENDGRID_KEY) {
     console.log('Email would send to:', to, '| Subject:', subject);
