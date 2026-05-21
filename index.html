@@ -538,8 +538,13 @@ const ROLE_STEPS = {
 
 async function sbFetch(endpoint, opts={}) {
   const { headers: extraHeaders, ...restOpts } = opts;
+  const method = (restOpts.method || 'GET').toUpperCase();
+  // DELETE requests must not send Content-Type
+  const baseHeaders = method === 'DELETE'
+    ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    : SB_HEADERS;
   const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, {
-    headers: { ...SB_HEADERS, ...(extraHeaders || {}) },
+    headers: { ...baseHeaders, ...(extraHeaders || {}) },
     ...restOpts
   });
   if (!res.ok) throw new Error(await res.text());
