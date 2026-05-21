@@ -700,7 +700,8 @@ function renderDealList() {
 
   list.innerHTML = filtered.map(d => {
     const name = [d.first_name, d.last_name].filter(Boolean).join(' ') || 'Unknown';
-    const initials = name.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
+    const storeName = deal.store_name || name;
+  const initials = storeName.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
     const step = d.current_step;
     const isClosed = d.deal_status === 'closed';
     const badgeClass = isClosed ? 'denied' : step === 'complete' ? 'complete' : step === 'funded' ? 'funded' : d.phase === 'ops' ? 'ops' : 'leasing';
@@ -709,10 +710,10 @@ function renderDealList() {
     const isActive = d.id === currentDealId;
     return `<div class="deal-card${isActive?' active':''}" onclick="selectDeal('${d.id}')">
       <div class="dc-row1">
-        <div class="dc-name">${name}</div>
+        <div class="dc-name">${d.store_name || name}</div>
         <div class="dc-badge ${badgeClass}">${badgeLabel}</div>
       </div>
-      <div class="dc-store">${d.store_name || '—'}</div>
+      <div class="dc-store">${name}</div>
       <div class="dc-meta">
         ${d.sales_rep ? `<span>${d.sales_rep}</span><span class="dc-meta-dot"></span>` : ''}
         <span>${date}</span>
@@ -829,7 +830,8 @@ function renderEquipmentTable(raw, dealId) {
 
 function renderDetail(deal, notes, activity, docs) {
   const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ') || 'Unknown';
-  const initials = name.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
+  const storeName = deal.store_name || name;
+  const initials = storeName.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
   const isClosed = deal.deal_status === 'closed';
   const step = deal.current_step;
   const isLeasing = deal.phase === 'leasing' || LEASING_STEPS.includes(step);
@@ -940,8 +942,8 @@ function renderDetail(deal, notes, activity, docs) {
       <div class="dh-top">
         <div class="dh-avatar">${initials}</div>
         <div class="dh-info">
-          <div class="dh-name">${name}</div>
-          <div class="dh-sub">${deal.store_name||''}${deal.address ? ' · '+deal.address : ''}${deal.deal_type ? ' · '+deal.deal_type : ''}</div>
+          <div class="dh-name">${deal.store_name || name}</div>
+          <div class="dh-sub">${name}${deal.address ? ' · '+deal.address : ''}${deal.deal_type ? ' · '+deal.deal_type : ''}</div>
           <div class="dh-badges">
             <span class="dh-badge phase-${deal.phase}">${isLeasing?'Leasing':'Operations'}</span>
             <span class="dh-badge phase-${deal.phase}">${ALL_LABELS[step]||step}</span>
