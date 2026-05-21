@@ -30,6 +30,8 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .brand-version{font-size:10px;color:rgba(255,255,255,0.45);font-weight:400;margin-left:4px}
 .topbar-spacer{flex:1}
 .sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:20px;border:0.5px solid rgba(255,255,255,0.2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.syncing{animation:spin 1s linear infinite;display:inline-block}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
 .sync-dot.connecting{background:#f59e0b;animation:pulse 1s infinite}
 .sync-dot.error{background:#ef4444}
@@ -313,7 +315,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
   </div>
   <div class="topbar-spacer"></div>
   <div class="sync-badge"><div class="sync-dot connecting" id="syncDot"></div><span id="syncLabel">Connecting…</span></div>
-  <button onclick="syncJotform()" style="background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer">↻ Sync</button>
+  <button id="syncBtn" onclick="syncJotform()" style="background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer"><span id="syncIcon">↻</span> Sync</button>
   <button onclick="openSettings()" style="background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">⚙</button>
 </div>
 
@@ -1560,7 +1562,17 @@ async function importCsv(input) {
 async function syncJotform() {
   const apiKey = localStorage.getItem('jotform_api_key');
   if (!apiKey) { showToast('Set Jotform API key in Settings first', 'error'); openSettings(); return; }
-  showToast('Syncing Jotform submissions…');
+
+  // Show syncing state
+  const btn = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncIcon');
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (btn) btn.disabled = true;
+  if (icon) icon.className = 'syncing';
+  if (dot) dot.className = 'sync-dot connecting';
+  if (lbl) lbl.textContent = 'Syncing…';
+
   try {
     const res = await fetch('/.netlify/functions/sync', {
       method: 'POST',
@@ -1569,9 +1581,14 @@ async function syncJotform() {
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'Sync failed');
     await loadDeals();
-    showToast(`Sync complete — ${data.added} new, ${data.updated} updated`, 'success');
+    showToast(`Sync complete — ${data.added} new, ${data.updated} updated, ${data.skipped} skipped`, 'success');
+    updateSync(true);
   } catch(e) {
     showToast('Sync failed: ' + e.message, 'error');
+    updateSync(false);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) { icon.className = ''; icon.textContent = '↻'; }
   }
 }
 
@@ -1586,6 +1603,10 @@ async function confirmDelete(dealId) {
 async function deleteDeal(id) {
   showToast('Deleting…');
   try {
+    // Find the deal before deleting so we can blocklist its Jotform ID
+    const deal = deals.find(d => d.id === id);
+    const subId = deal?.jotform_submission_id;
+
     const res = await fetch(`${SB_URL}/rest/v1/deals?id=eq.${id}`, {
       method: 'DELETE',
       headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
@@ -1594,6 +1615,21 @@ async function deleteDeal(id) {
       const err = await res.text();
       throw new Error(err);
     }
+
+    // Add to blocklist so sync never re-imports this record
+    if (subId && !subId.startsWith('csv-')) {
+      await fetch(`${SB_URL}/rest/v1/jotform_blocklist`, {
+        method: 'POST',
+        headers: {
+          apikey: SB_KEY,
+          Authorization: `Bearer ${SB_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=ignore-duplicates'
+        },
+        body: JSON.stringify({ jotform_submission_id: subId, reason: `Manually deleted: ${deal?.store_name || ''}` })
+      });
+    }
+
     deals = deals.filter(d => d.id !== id);
     currentDealId = null;
     forceCloseModal();
