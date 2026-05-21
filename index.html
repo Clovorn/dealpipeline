@@ -895,13 +895,16 @@ function renderDetail(deal, notes, activity, docs) {
 
   // Documents
   const docList = docs.length ? docs.map(d => `
-    <div class="doc-item">
-      <div class="doc-icon">PDF</div>
+    <div class="doc-item" id="doc-${d.id}">
+      <div class="doc-icon">${d.file_name.match(/\.(png|jpg|jpeg)$/i) ? 'IMG' : 'PDF'}</div>
       <div class="doc-info">
         <div class="doc-name">${d.file_name}</div>
         <div class="doc-meta">${d.uploaded_by||'Uploaded'} · ${fmtDate(d.created_at)}</div>
       </div>
-      <a class="doc-download" href="${d.file_url}" target="_blank">Download</a>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <a class="doc-download" href="${d.file_url}" target="_blank">Download</a>
+        <button onclick="deleteDoc('${d.id}','${d.file_url}','${deal.id}')" style="font-size:11px;padding:3px 8px;border-radius:5px;border:0.5px solid var(--red-200);background:var(--red-100);color:var(--red-600);cursor:pointer">Delete</button>
+      </div>
     </div>`).join('') : `<div style="font-size:12px;color:var(--text3);padding:8px 0">No documents uploaded yet</div>`;
 
   const uploadArea = (currentRole === 'admin' || currentRole === 'leasing') ? `
@@ -1328,6 +1331,30 @@ async function addNote(dealId) {
     selectDeal(dealId);
   } catch(e) {
     showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteDoc(docId, fileUrl, dealId) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  try {
+    // Extract storage path from URL
+    const urlParts = fileUrl.split('/storage/v1/object/public/deal-documents/');
+    if (urlParts.length > 1) {
+      const filePath = urlParts[1];
+      await fetch(`${SB_URL}/storage/v1/object/deal-documents/${filePath}`, {
+        method: 'DELETE',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+      });
+    }
+    // Remove from deal_documents table
+    await sbFetch(`deal_documents?id=eq.${docId}`, { method: 'DELETE' });
+    await logActivity(dealId, 'Document deleted', '', currentRole);
+    // Remove from DOM immediately
+    const el = document.getElementById(`doc-${docId}`);
+    if (el) el.remove();
+    showToast('Document deleted', 'success');
+  } catch(e) {
+    showToast('Delete failed: ' + e.message, 'error');
   }
 }
 
