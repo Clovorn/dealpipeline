@@ -1,6 +1,6 @@
 const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
-const FORM_ID = '260154983685872';
+const FORM_IDS = ['260154983685872', '253445565512862'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -84,14 +84,39 @@ function mapSubmission(sub) {
   return deal;
 }
 
-// A submission is valid if it has at minimum a store name or a contact name
+// Junk/test patterns — store names that look like test data
+const JUNK_PATTERNS = [
+  /^test/i, /^fda/, /^asdf/, /^qwer/, /^1234/,
+  /^greg$/i, /^bobs?$/i, /^joes?\s/i, /^kens?$/i,
+  /^bubbas?$/i, /^sparkys?$/i, /^dks?$/i, /^gp\s/i,
+  /^bills?$/i, /^market$/i, /first\s*stop$/i, /this is great/i,
+  /chuck.*store/i, /chuck.*great/i, /chucks great/i,
+  /dueling organ/i, /^mish\s/i, /stucky.*doolittle/i,
+  /abc\s*stor/i, /^shoprite$/i, /^steven urban$/i,
+];
+
+function isJunkName(name) {
+  return JUNK_PATTERNS.some(p => p.test(name));
+}
+
+// A submission is valid if it has a real store name, contact name and sales rep
 function isValidSubmission(sub) {
   const answers = sub.answers || {};
   const contactName = getField(answers, 'contact name');
   const storeName = getField(answers, 'store name');
   const salesRep = getField(answers, 'ronnoco sales rep');
-  // Must have at least a store name AND either a contact name or sales rep
-  return storeName.length > 0 && (contactName.length > 0 || salesRep.length > 0);
+  const salesRepEmail = getField(answers, 'ronnoco sales rep email');
+
+  // Must have store name + (contact or sales rep)
+  if (!storeName || (!contactName && !salesRep)) return false;
+
+  // Reject obvious junk/test names
+  if (isJunkName(storeName)) return false;
+
+  // Reject if sales rep email is blank or looks fake (real submissions always have rep email)
+  if (!salesRepEmail && !salesRep) return false;
+
+  return true;
 }
 
 exports.handler = async (event) => {
@@ -120,9 +145,11 @@ exports.handler = async (event) => {
     const blocklistData = await blocklistRes.json();
     const blocklist = new Set((blocklistData || []).map(b => b.jotform_submission_id));
 
-    let offset = 0;
-    const limit = 100;
     let added = 0, updated = 0, skipped = 0;
+    const limit = 100;
+
+    for (const FORM_ID of FORM_IDS) {
+    let offset = 0;
     let hasMore = true;
 
     while (hasMore) {
@@ -221,6 +248,7 @@ exports.handler = async (event) => {
       offset += submissions.length;
       if (submissions.length < limit) hasMore = false;
     }
+    } // end for each form
 
     return {
       statusCode: 200,
