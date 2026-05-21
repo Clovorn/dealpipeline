@@ -530,7 +530,11 @@ const ROLE_STEPS = {
 };
 
 async function sbFetch(endpoint, opts={}) {
-  const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, { headers: SB_HEADERS, ...opts });
+  const { headers: extraHeaders, ...restOpts } = opts;
+  const res = await fetch(`${SB_URL}/rest/v1/${endpoint}`, {
+    headers: { ...SB_HEADERS, ...(extraHeaders || {}) },
+    ...restOpts
+  });
   if (!res.ok) throw new Error(await res.text());
   return res.status === 204 ? null : res.json();
 }
