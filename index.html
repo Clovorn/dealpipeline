@@ -554,15 +554,18 @@ async function sbFetch(endpoint, opts={}) {
 async function loadDeals() {
   try {
     const data = await sbFetch('deals?select=*&order=created_at.desc');
-    deals = data || [];
+    deals = (data || []).map(d => {
+      // Safely parse any JSON fields that might be malformed
+      return d;
+    });
     updateSync(true);
     renderDealList();
     updateMetrics();
-    // Sync stage bar visibility with current view
     const bar = document.getElementById('stageBar');
     if (bar) bar.style.display = currentView === 'leasing' ? 'flex' : 'none';
   } catch(e) {
     updateSync(false);
+    console.error('Load deals error:', e);
     showToast('Failed to load deals: ' + e.message, 'error');
   }
 }
@@ -698,7 +701,7 @@ function renderDealList() {
     return;
   }
 
-  list.innerHTML = filtered.map(d => {
+  list.innerHTML = filtered.map(d => { try {
     const name = [d.first_name, d.last_name].filter(Boolean).join(' ') || 'Unknown';
     const step = d.current_step;
     const isClosed = d.deal_status === 'closed';
@@ -718,6 +721,7 @@ function renderDealList() {
         ${d.is_new_customer ? `<span class="dc-meta-dot"></span><span style="color:var(--teal-600);font-weight:600">New Customer</span>` : ''}
       </div>
     </div>`;
+  } catch(e) { return `<div class="deal-card" style="color:var(--red-600);font-size:11px;padding:10px 14px">Error rendering: ${d.store_name||d.id}</div>`; }
   }).join('');
 }
 
@@ -983,9 +987,9 @@ function renderDetail(deal, notes, activity, docs) {
     <div class="section-card" style="padding:0;overflow:hidden">
       <div style="padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between">
         <div class="section-title" style="margin:0">Equipment Selection</div>
-        <span style="font-size:10px;color:var(--text3)">${parseEquipment(deal.equipment_selection).length} item${parseEquipment(deal.equipment_selection).length!==1?'s':''}</span>
+        <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection).length!==1?'s':''}catch(e){return 's'}})() }</span>
       </div>
-      ${renderEquipmentTable(deal.equipment_selection, deal.id)}
+      ${(()=>{try{return renderEquipmentTable(deal.equipment_selection, deal.id)}catch(e){return '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">Unable to parse equipment data</div>'}})()}
     </div>
 
     <div class="section-card">
