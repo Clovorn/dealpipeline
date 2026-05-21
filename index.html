@@ -752,7 +752,7 @@ function parseEquipment(raw) {
       const saved = JSON.parse(raw);
       return (saved.items || []).map(i => ({ name: (i.num ? i.num + ' - ' : '') + i.name, price: i.price, qty: i.qty }));
     }
-    // Handle Jotform product format — extract from individual product objects
+    // Handle Jotform product format — extract from individual product objects (Deal Sheet form)
     const parsed = [];
     const productRegex = /"name":"([^"]+)"[^}]*?"price":([0-9.]+)[^}]*?"quantity":([0-9]+)/g;
     let match;
@@ -760,15 +760,26 @@ function parseEquipment(raw) {
       parsed.push({ name: match[1], price: parseFloat(match[2]), qty: parseInt(match[3]) });
     }
     if (parsed.length) return parsed;
-    // Fallback: parse summary product array strings
+    // Fallback: parse summary product array strings (Deal Sheet)
     const lastBrace = raw.lastIndexOf('{"product"');
-    if (lastBrace === -1) return [];
-    const summary = JSON.parse(raw.slice(lastBrace));
-    return (summary.product || []).map(p => {
-      const m = p.match(/^(.+?)\s*\(Amount:\s*([\d,]+\.?\d*)\s*USD,\s*Quantity:\s*(\d+)/);
-      if (m) return { name: m[1].trim(), price: parseFloat(m[2].replace(/,/g,'')), qty: parseInt(m[3]) };
-      return { name: p, price: 0, qty: 1 };
-    });
+    if (lastBrace !== -1) {
+      const summary = JSON.parse(raw.slice(lastBrace));
+      return (summary.product || []).map(p => {
+        const m = p.match(/^(.+?)\s*\(Amount:\s*([\d,]+\.?\d*)\s*USD,\s*Quantity:\s*(\d+)/);
+        if (m) return { name: m[1].trim(), price: parseFloat(m[2].replace(/,/g,'')), qty: parseInt(m[3]) };
+        return { name: p, price: 0, qty: 1 };
+      });
+    }
+    // Fallback: simple line format "Item Name (Amount: X.XX USD, Quantity: N)"
+    const lines = raw.split(/[\n\r]/).map(l => l.trim()).filter(Boolean);
+    const distItems = [];
+    for (const line of lines) {
+      if (line.toLowerCase().startsWith('total:')) continue;
+      const m = line.match(/^(.+?)\s*\(Amount:\s*([\d,]+\.?\d*)\s*USD(?:,\s*Quantity:\s*(\d+))?\)/);
+      if (m) distItems.push({ name: m[1].trim(), price: parseFloat(m[2].replace(/,/g,'')), qty: parseInt(m[3]||'1') });
+    }
+    if (distItems.length) return distItems;
+    return [];
   } catch(e) {
     return [];
   }
