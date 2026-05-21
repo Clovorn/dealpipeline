@@ -262,6 +262,24 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .lock-input{width:100%;padding:8px 12px;border:0.5px solid var(--gray-300);border-radius:var(--radius);text-align:center;letter-spacing:4px;font-size:16px;outline:none;margin-bottom:10px}
 .lock-input:focus{border-color:var(--navy)}
 .lock-error{font-size:11px;color:var(--red-600);margin-bottom:8px;display:none}
+.stab{flex:1;padding:6px 10px;border:none;background:transparent;border-radius:var(--radius);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s}
+.stab.active{background:var(--surface);color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.stab:hover:not(.active){background:rgba(255,255,255,0.6)}
+.tm-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:6px;background:var(--gray-50)}
+.tm-name{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.tm-email{font-size:11px;color:var(--text2);flex:1}
+.tm-role{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--blue-100);color:var(--navy);border:0.5px solid var(--blue-200)}
+.nr-card{background:var(--gray-50);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px}
+.nr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.nr-stage{font-size:13px;font-weight:600;color:var(--text)}
+.nr-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.nr-section{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);margin:8px 0 5px}
+.nr-members{display:flex;flex-wrap:wrap;gap:5px}
+.nr-member{display:flex;align-items:center;gap:4px;padding:3px 9px;border:0.5px solid var(--gray-300);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;background:var(--surface);transition:all 0.15s}
+.nr-member.selected{background:var(--navy);color:#fff;border-color:var(--navy)}
+.nr-fields{display:flex;flex-wrap:wrap;gap:5px}
+.nr-field{display:flex;align-items:center;gap:4px;padding:3px 9px;border:0.5px solid var(--gray-300);border-radius:20px;font-size:11px;color:var(--text2);cursor:pointer;background:var(--surface);transition:all 0.15s}
+.nr-field.selected{background:var(--green-600);color:#fff;border-color:var(--green-600)}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:var(--gray-900);color:#fff;padding:10px 16px;border-radius:var(--radius);font-size:13px;z-index:2000;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:320px}
@@ -382,6 +400,15 @@ input,textarea,select{font-family:inherit;font-size:13px}
       <button class="btn" onclick="closeSettings()">← Back</button>
       <div class="settings-title">Settings</div>
     </div>
+    <!-- Settings Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--gray-100);border-radius:var(--radius);padding:4px">
+      <button class="stab active" id="stab-general" onclick="switchSettingsTab('general')">General</button>
+      <button class="stab" id="stab-team" onclick="switchSettingsTab('team')">Team Members</button>
+      <button class="stab" id="stab-notifications" onclick="switchSettingsTab('notifications')">Notifications</button>
+      <button class="stab" id="stab-email" onclick="switchSettingsTab('email')">Email</button>
+    </div>
+    <!-- GENERAL TAB -->
+    <div id="stab-content-general">
     <div class="settings-section">
       <div class="settings-section-title">Jotform Connection</div>
       <div class="form-row">
@@ -414,6 +441,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
       <div style="font-size:11px;font-family:monospace;background:var(--gray-50);padding:8px 10px;border-radius:var(--radius);border:0.5px solid var(--border);word-break:break-all;color:var(--navy)" id="webhookUrl"></div>
       <button class="btn" style="margin-top:8px" onclick="copyWebhook()">Copy webhook URL</button>
     </div>
+    </div><!-- end email tab -->
     <div class="settings-section">
       <div class="settings-section-title">Admin Password</div>
       <div class="form-row">
@@ -422,8 +450,52 @@ input,textarea,select{font-family:inherit;font-size:13px}
       </div>
       <button class="btn btn-primary" onclick="changePassword()">Update password</button>
     </div>
-  </div>
-</div>
+    </div><!-- end general tab -->
+
+    <!-- TEAM MEMBERS TAB -->
+    <div id="stab-content-team" style="display:none">
+      <div class="settings-section">
+        <div class="settings-section-title">Team Members</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Add team members who can be assigned to notification rules.</div>
+        <div id="teamMemberList" style="margin-bottom:12px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:end">
+          <div>
+            <label class="form-label">Name</label>
+            <input class="settings-input" id="tm-name" placeholder="Full name" style="width:100%"/>
+          </div>
+          <div>
+            <label class="form-label">Email</label>
+            <input class="settings-input" id="tm-email" type="email" placeholder="email@company.com" style="width:100%"/>
+          </div>
+          <div>
+            <label class="form-label">Role</label>
+            <select class="settings-input" id="tm-role" style="width:100%">
+              <option>Sales Rep</option>
+              <option>Leasing</option>
+              <option>Ops</option>
+              <option>Service</option>
+              <option>Manager</option>
+              <option>ROM</option>
+              <option>Lender</option>
+              <option>Admin</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="addTeamMember()" style="height:32px">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="stab-content-notifications" style="display:none">
+      <div class="settings-section">
+        <div class="settings-section-title">Notification Rules</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Configure who gets notified at each pipeline stage and what deal information is included.</div>
+        <div id="notificationRulesList"></div>
+      </div>
+    </div>
+
+    <!-- EMAIL TAB -->
+    <div id="stab-content-email" style="display:none">
 
 <!-- MODALS (rendered dynamically) -->
 <div id="modalContainer"></div>
@@ -808,8 +880,9 @@ function renderDetail(deal, notes, activity, docs) {
 
     <div class="section-card">
       <div class="section-title">Notes</div>
-      <div class="note-input-wrap">
-        <textarea class="note-input" id="noteInput_${deal.id}" placeholder="Add a note…"></textarea>
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+        <input type="text" id="noteAuthor_${deal.id}" class="field-input" placeholder="Your name" style="width:160px;flex-shrink:0" value="${localStorage.getItem('note_author_name')||''}"/>
+        <textarea class="note-input" id="noteInput_${deal.id}" placeholder="Add a note…" style="flex:1;min-height:52px;margin:0"></textarea>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
         <button class="btn btn-primary" onclick="addNote('${deal.id}')">Add note</button>
@@ -838,7 +911,11 @@ async function moveDeal(id, newStep, newPhase) {
     if (newStep === 'notify_lender') {
       await sendLenderNotification(deal);
     }
-    // Notify on install scheduled
+    // Fire configured notification rules on key milestones
+    if (['credit_approved','funded','equip_ordered','install_scheduled'].includes(newStep)) {
+      await fireNotification(newStep, id);
+    }
+    // Legacy install notification (sales rep + distributor)
     if (newStep === 'install_scheduled') {
       await sendInstallNotification(deal);
     }
@@ -974,6 +1051,7 @@ async function submitDeny(dealId) {
       body: JSON.stringify({ deal_id: dealId, note_text: `Credit Denied: ${reason}`, author: 'System' })
     });
     await logActivity(dealId, 'Credit denied', reason, currentRole);
+    await fireNotification('credit_denied', dealId, `Reason: ${reason}`);
     // Email sales rep
     const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
     if (deal.sales_rep_email) {
@@ -1022,14 +1100,19 @@ async function logActivity(dealId, action, detail, actor) {
 
 async function addNote(dealId) {
   const input = document.getElementById(`noteInput_${dealId}`);
+  const nameInput = document.getElementById(`noteAuthor_${dealId}`);
   const text = input.value.trim();
-  if (!text) return;
+  const authorName = (nameInput?.value || '').trim();
+  if (!text) { showToast('Please enter a note', 'error'); return; }
+  if (!authorName) { showToast('Please enter your name', 'error'); return; }
+  // Save name for convenience
+  localStorage.setItem('note_author_name', authorName);
   try {
-    const note = await sbFetch('deal_notes', {
+    await sbFetch('deal_notes', {
       method: 'POST',
-      body: JSON.stringify({ deal_id: dealId, note_text: text, author: currentRole.charAt(0).toUpperCase() + currentRole.slice(1) })
+      body: JSON.stringify({ deal_id: dealId, note_text: text, author: authorName })
     });
-    await logActivity(dealId, 'Note added', text.slice(0,80)+(text.length>80?'…':''), currentRole);
+    await logActivity(dealId, 'Note added', `${authorName}: ${text.slice(0,80)}${text.length>80?'…':''}`, authorName);
     input.value = '';
     showToast('Note added', 'success');
     selectDeal(dealId);
@@ -1363,6 +1446,197 @@ function changePassword() {
   localStorage.setItem('admin_pass', np);
   document.getElementById('s-newpass').value = '';
   showToast('Password updated!', 'success');
+}
+
+// ─── SETTINGS TABS ───────────────────────────────────────────────────────────
+function switchSettingsTab(tab) {
+  ['general','team','notifications','email'].forEach(t => {
+    document.getElementById(`stab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`stab-content-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'team') loadTeamMembers();
+  if (tab === 'notifications') loadNotificationRules();
+}
+
+// ─── TEAM MEMBERS ─────────────────────────────────────────────────────────────
+let teamMembers = [];
+
+async function loadTeamMembers() {
+  try {
+    teamMembers = await sbFetch('team_members?order=name.asc&select=*') || [];
+    renderTeamMembers();
+  } catch(e) { showToast('Error loading team members', 'error'); }
+}
+
+function renderTeamMembers() {
+  const list = document.getElementById('teamMemberList');
+  if (!list) return;
+  if (!teamMembers.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">No team members yet. Add one below.</div>';
+    return;
+  }
+  list.innerHTML = teamMembers.map(m => `
+    <div class="tm-row">
+      <span class="tm-name">${m.name}</span>
+      <span class="tm-email">${m.email}</span>
+      <span class="tm-role">${m.role}</span>
+      <button class="btn btn-danger" style="padding:3px 8px;font-size:11px" onclick="removeTeamMember('${m.id}')">Remove</button>
+    </div>`).join('');
+}
+
+async function addTeamMember() {
+  const name = document.getElementById('tm-name').value.trim();
+  const email = document.getElementById('tm-email').value.trim();
+  const role = document.getElementById('tm-role').value;
+  if (!name || !email) { showToast('Name and email are required', 'error'); return; }
+  try {
+    await sbFetch('team_members', { method: 'POST', body: JSON.stringify({ name, email, role, active: true }) });
+    document.getElementById('tm-name').value = '';
+    document.getElementById('tm-email').value = '';
+    showToast(`${name} added!`, 'success');
+    await loadTeamMembers();
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function removeTeamMember(id) {
+  try {
+    await sbFetch(`team_members?id=eq.${id}`, { method: 'DELETE' });
+    showToast('Team member removed', 'success');
+    await loadTeamMembers();
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ─── NOTIFICATION RULES ───────────────────────────────────────────────────────
+const NOTIFICATION_STAGES = [
+  { stage: 'submitted',         label: 'New Deal Submitted' },
+  { stage: 'credit_approved',   label: 'Credit Approved' },
+  { stage: 'credit_denied',     label: 'Credit Denied' },
+  { stage: 'funded',            label: 'Deal Funded' },
+  { stage: 'equip_ordered',     label: 'Equipment Ordered' },
+  { stage: 'install_scheduled', label: 'Installation Scheduled' },
+  { stage: 'weekly_digest',     label: 'Weekly Digest (Monday 8am)' },
+];
+
+const ALL_FIELDS = [
+  { key: 'customer',            label: 'Customer Name' },
+  { key: 'store',               label: 'Store Name' },
+  { key: 'address',             label: 'Address' },
+  { key: 'deal_type',           label: 'Deal Type' },
+  { key: 'total_eq_cost',       label: 'Equipment Cost' },
+  { key: 'sales_rep',           label: 'Sales Rep' },
+  { key: 'rom',                 label: 'ROM' },
+  { key: 'distributor',         label: 'Distributor' },
+  { key: 'distributor_rep_email', label: 'Distributor Rep Email' },
+  { key: 'target_install_date', label: 'Install Date' },
+  { key: 'equipment_selection', label: 'Equipment Selection' },
+  { key: 'coffee_program',      label: 'Coffee Program' },
+  { key: 'graphics_package',    label: 'Graphics Package' },
+  { key: 'denied_reason',       label: 'Decline Reason' },
+  { key: 'notes',               label: 'Notes' },
+];
+
+let notificationRules = {};
+
+async function loadNotificationRules() {
+  try {
+    if (!teamMembers.length) teamMembers = await sbFetch('team_members?order=name.asc&select=*') || [];
+    const rules = await sbFetch('notification_rules?select=*') || [];
+    rules.forEach(r => { notificationRules[r.stage] = r; });
+    renderNotificationRules();
+  } catch(e) { showToast('Error loading notification rules', 'error'); }
+}
+
+function renderNotificationRules() {
+  const container = document.getElementById('notificationRulesList');
+  if (!container) return;
+  container.innerHTML = NOTIFICATION_STAGES.map(({ stage, label }) => {
+    const rule = notificationRules[stage] || { enabled: true, recipient_ids: [], include_fields: [] };
+    const selectedMembers = rule.recipient_ids || [];
+    const selectedFields = rule.include_fields || [];
+
+    const memberBtns = teamMembers.map(m => `
+      <div class="nr-member ${selectedMembers.includes(m.id) ? 'selected' : ''}"
+           onclick="toggleNrMember('${stage}','${m.id}',this)">
+        ${m.name} <span style="opacity:0.7;font-size:10px">${m.role}</span>
+      </div>`).join('') || '<span style="font-size:11px;color:var(--text3)">No team members yet — add them in the Team Members tab</span>';
+
+    const fieldBtns = ALL_FIELDS.map(f => `
+      <div class="nr-field ${selectedFields.includes(f.key) ? 'selected' : ''}"
+           onclick="toggleNrField('${stage}','${f.key}',this)">
+        ${f.label}
+      </div>`).join('');
+
+    return `<div class="nr-card" id="nr-${stage}">
+      <div class="nr-header">
+        <span class="nr-stage">${label}</span>
+        <label class="nr-toggle">
+          <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleNrEnabled('${stage}',this.checked)"/>
+          Enabled
+        </label>
+      </div>
+      <div class="nr-section">Recipients</div>
+      <div class="nr-members">${memberBtns}</div>
+      <div class="nr-section" style="margin-top:10px">Deal fields to include</div>
+      <div class="nr-fields">${fieldBtns}</div>
+      <button class="btn btn-primary" style="margin-top:10px;font-size:11px;padding:4px 12px" onclick="saveNrRule('${stage}')">Save rule</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleNrMember(stage, memberId, el) {
+  if (!notificationRules[stage]) notificationRules[stage] = { enabled: true, recipient_ids: [], include_fields: [] };
+  const ids = notificationRules[stage].recipient_ids || [];
+  const idx = ids.indexOf(memberId);
+  if (idx >= 0) ids.splice(idx, 1);
+  else ids.push(memberId);
+  notificationRules[stage].recipient_ids = ids;
+  el.classList.toggle('selected', ids.includes(memberId));
+}
+
+function toggleNrField(stage, fieldKey, el) {
+  if (!notificationRules[stage]) notificationRules[stage] = { enabled: true, recipient_ids: [], include_fields: [] };
+  const fields = notificationRules[stage].include_fields || [];
+  const idx = fields.indexOf(fieldKey);
+  if (idx >= 0) fields.splice(idx, 1);
+  else fields.push(fieldKey);
+  notificationRules[stage].include_fields = fields;
+  el.classList.toggle('selected', fields.includes(fieldKey));
+}
+
+function toggleNrEnabled(stage, enabled) {
+  if (!notificationRules[stage]) notificationRules[stage] = { enabled: true, recipient_ids: [], include_fields: [] };
+  notificationRules[stage].enabled = enabled;
+}
+
+async function saveNrRule(stage) {
+  const rule = notificationRules[stage];
+  if (!rule) return;
+  try {
+    const existing = await sbFetch(`notification_rules?stage=eq.${stage}&select=id`);
+    if (existing && existing.length) {
+      await sbFetch(`notification_rules?stage=eq.${stage}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: rule.enabled, recipient_ids: rule.recipient_ids, include_fields: rule.include_fields, updated_at: new Date().toISOString() })
+      });
+    } else {
+      await sbFetch('notification_rules', {
+        method: 'POST',
+        body: JSON.stringify({ stage, enabled: rule.enabled, recipient_ids: rule.recipient_ids, include_fields: rule.include_fields })
+      });
+    }
+    showToast('Notification rule saved!', 'success');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ─── FIRE NOTIFICATION ────────────────────────────────────────────────────────
+async function fireNotification(stage, dealId, extra = '') {
+  try {
+    await fetch('/.netlify/functions/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, deal_id: dealId, extra })
+    });
+  } catch(e) { console.warn('Notification failed:', e); }
 }
 
 function copyWebhook() {
