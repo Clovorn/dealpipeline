@@ -57,7 +57,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .search-input:focus{border-color:var(--navy);background:#fff}
 
 /* METRICS */
-.metrics{background:var(--surface);border-bottom:0.5px solid var(--border);padding:10px 16px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;flex-shrink:0}
+.metrics{background:var(--surface);border-bottom:0.5px solid var(--border);padding:10px 16px;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;flex-shrink:0}
 .metric{background:var(--gray-50);border-radius:var(--radius);padding:8px 12px;border:0.5px solid var(--border)}
 .metric-label{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.4px}
 .metric-val{font-size:18px;font-weight:600;color:var(--text)}
@@ -276,7 +276,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
 
 /* RESPONSIVE */
 @media(max-width:768px){
-  .metrics{grid-template-columns:repeat(3,1fr)}
+  .metrics{grid-template-columns:repeat(4,1fr)}
   .deal-list-panel{width:100%;position:absolute;z-index:50;height:calc(100% - 180px);transform:translateX(-100%);transition:transform 0.25s}
   .deal-list-panel.open{transform:translateX(0)}
   .info-grid{grid-template-columns:1fr}
@@ -324,11 +324,19 @@ input,textarea,select{font-family:inherit;font-size:13px}
 <!-- METRICS -->
 <div class="metrics">
   <div class="metric"><div class="metric-label">Total Active</div><div class="metric-val" id="mTotal">—</div><div class="metric-sub" id="mTotalVal"></div></div>
-  <div class="metric"><div class="metric-label">In Leasing</div><div class="metric-val blue" id="mLeasing">—</div><div class="metric-sub blue" id="mLeasingVal"></div></div>
-  <div class="metric"><div class="metric-label">In Ops</div><div class="metric-val blue" id="mOps">—</div><div class="metric-sub blue" id="mOpsVal"></div></div>
+  <div class="metric"><div class="metric-label">In Financing</div><div class="metric-val blue" id="mLeasing">—</div><div class="metric-sub blue" id="mLeasingVal"></div></div>
+  <div class="metric">
+    <div class="metric-label">Credit Stage</div>
+    <div class="metric-val blue" id="mCredit">—</div>
+    <div class="metric-sub" style="display:flex;gap:8px;margin-top:3px">
+      <span style="font-size:10px;color:var(--text3)">Sent <strong id="mCreditSent" style="color:#1a3a6b">—</strong></span>
+      <span style="font-size:10px;color:var(--text3)">Rec'd <strong id="mCreditRecv" style="color:#1a3a6b">—</strong></span>
+    </div>
+  </div>
   <div class="metric"><div class="metric-label">Funded</div><div class="metric-val amber" id="mFunded">—</div><div class="metric-sub amber" id="mFundedVal"></div></div>
+  <div class="metric"><div class="metric-label">Closed / Lost</div><div class="metric-val red" id="mClosed">—</div><div class="metric-sub" id="mClosedVal"></div></div>
+  <div class="metric"><div class="metric-label">In Ops</div><div class="metric-val blue" id="mOps">—</div><div class="metric-sub blue" id="mOpsVal"></div></div>
   <div class="metric"><div class="metric-label">Complete</div><div class="metric-val green" id="mComplete">—</div><div class="metric-sub green" id="mCompleteVal"></div></div>
-  <div class="metric"><div class="metric-label">Closed/Lost</div><div class="metric-val red" id="mClosed">—</div><div class="metric-sub" id="mClosedVal"></div></div>
 </div>
 
 <!-- STAGE FILTER -->
@@ -336,6 +344,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
   <div class="stage-pill active" data-stage="all" onclick="setStageFilter('all',this)">All</div>
   <span class="stage-sep">›</span>
   <div class="stage-pill leasing" data-stage="submitted" onclick="setStageFilter('submitted',this)">Submitted</div>
+  <div class="stage-pill leasing" data-stage="notify_lender" onclick="setStageFilter('notify_lender',this)">Notify Lender</div>
   <div class="stage-pill leasing" data-stage="credit_sent" onclick="setStageFilter('credit_sent',this)">Credit App Sent</div>
   <div class="stage-pill leasing" data-stage="credit_received" onclick="setStageFilter('credit_received',this)">Credit App Received</div>
   <div class="stage-pill leasing" data-stage="credit_approved" onclick="setStageFilter('credit_approved',this)">Credit Approved</div>
@@ -385,6 +394,11 @@ input,textarea,select{font-family:inherit;font-size:13px}
     <div class="settings-section">
       <div class="settings-section-title">Email Configuration</div>
       <div class="form-row">
+        <label class="form-label">Lender / Leasing partner email</label>
+        <input class="settings-input" id="s-lender-email" placeholder="lender@lendingpartner.com"/>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Receives automatic notification on every new deal submission</div>
+      </div>
+      <div class="form-row">
         <label class="form-label">CRM Setup email address</label>
         <input class="settings-input" id="s-crm-email" placeholder="crm-setup@ronnoco.com"/>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">Recipient for new customer CRM setup emails</div>
@@ -431,9 +445,9 @@ let searchQuery = '';
 const ROLES = ['admin','sales','leasing','ops'];
 const ROLE_LABELS = {admin:'Admin',sales:'Sales',leasing:'Leasing',ops:'Ops'};
 
-const LEASING_STEPS = ['submitted','credit_sent','credit_received','credit_approved','paperwork_sent','paperwork_received','funded'];
+const LEASING_STEPS = ['submitted','notify_lender','credit_sent','credit_received','credit_approved','paperwork_sent','paperwork_received','funded'];
 const OPS_STEPS = ['customer_setup','equip_ordered','equip_received','install_scheduled','dist_notified','installation','complete'];
-const LEASING_LABELS = {submitted:'Submitted',credit_sent:'Credit App Sent',credit_received:'Credit App Received',credit_approved:'Credit Approved',paperwork_sent:'Paperwork Sent',paperwork_received:'Paperwork Received',funded:'Funded'};
+const LEASING_LABELS = {submitted:'Submitted',notify_lender:'Notify Lender',credit_sent:'Credit App Sent',credit_received:'Credit App Received',credit_approved:'Credit Approved',paperwork_sent:'Paperwork Sent',paperwork_received:'Paperwork Received',funded:'Funded'};
 const OPS_LABELS = {customer_setup:'Customer Setup',equip_ordered:'Equip Ordered',equip_received:'Equip Received',install_scheduled:'Install Scheduled',dist_notified:'Dist. Notified',installation:'Installation',complete:'Complete'};
 const ALL_LABELS = {...LEASING_LABELS,...OPS_LABELS,credit_denied:'Credit Denied'};
 
@@ -493,10 +507,24 @@ function sumCost(arr) {
 function updateMetrics() {
   const active = deals.filter(d => d.deal_status !== 'closed');
   const leasing = active.filter(d => d.phase === 'leasing' && d.current_step !== 'funded');
-  const ops = active.filter(d => d.phase === 'ops' && d.current_step !== 'complete');
+
+  // Ops = all deals in ops phase (including complete) — full funded value in the system
+  const opsAll = active.filter(d => d.phase === 'ops');
+  const opsActive = opsAll.filter(d => d.current_step !== 'complete');
+
+  // Funded = deals sitting at the funded step (awaiting ops handoff)
   const funded = active.filter(d => d.current_step === 'funded');
+
+  // Running total of all funded deals = funded step + everything in ops phase
+  const allFundedEver = active.filter(d => d.current_step === 'funded' || d.phase === 'ops');
+
   const complete = active.filter(d => d.current_step === 'complete');
   const closed = deals.filter(d => d.deal_status === 'closed');
+
+  // Credit stage = deals at credit_sent or credit_received
+  const creditSent = active.filter(d => d.current_step === 'credit_sent');
+  const creditRecv = active.filter(d => d.current_step === 'credit_received');
+  const creditStage = [...creditSent, ...creditRecv];
 
   document.getElementById('mTotal').textContent = active.length;
   document.getElementById('mTotalVal').textContent = fmtCurrency(sumCost(active));
@@ -504,17 +532,23 @@ function updateMetrics() {
   document.getElementById('mLeasing').textContent = leasing.length;
   document.getElementById('mLeasingVal').textContent = fmtCurrency(sumCost(leasing));
 
-  document.getElementById('mOps').textContent = ops.length;
-  document.getElementById('mOpsVal').textContent = fmtCurrency(sumCost(ops));
+  document.getElementById('mCredit').textContent = creditStage.length;
+  document.getElementById('mCreditSent').textContent = creditSent.length;
+  document.getElementById('mCreditRecv').textContent = creditRecv.length;
 
+  // Funded card = deals at funded step; running total = funded step + all ops phase
   document.getElementById('mFunded').textContent = funded.length;
-  document.getElementById('mFundedVal').textContent = fmtCurrency(sumCost(funded));
-
-  document.getElementById('mComplete').textContent = complete.length;
-  document.getElementById('mCompleteVal').textContent = fmtCurrency(sumCost(complete));
+  document.getElementById('mFundedVal').textContent = fmtCurrency(sumCost(allFundedEver));
 
   document.getElementById('mClosed').textContent = closed.length;
   document.getElementById('mClosedVal').textContent = '';
+
+  // Ops count = active ops deals; value = all ops phase deals (funded accounts in ops)
+  document.getElementById('mOps').textContent = opsActive.length;
+  document.getElementById('mOpsVal').textContent = fmtCurrency(sumCost(opsAll));
+
+  document.getElementById('mComplete').textContent = complete.length;
+  document.getElementById('mCompleteVal').textContent = fmtCurrency(sumCost(complete));
 }
 
 function getFilteredDeals() {
@@ -628,6 +662,10 @@ function renderDetail(deal, notes, activity, docs) {
   }
   if (deal.is_new_customer && currentRole === 'admin' && !isClosed) {
     actionBtns += `<button class="dh-btn crm" onclick="sendCrmEmail('${deal.id}')">✉ Send CRM Setup</button>`;
+  }
+  // Show resend lender button on notify_lender step or any leasing step for admin/leasing
+  if (!isClosed && (currentRole === 'admin' || currentRole === 'leasing') && deal.phase === 'leasing') {
+    actionBtns += `<button class="dh-btn" style="background:rgba(83,74,183,0.1);border-color:#afa9ec;color:#3c3489" onclick="resendLenderEmail('${deal.id}')">↻ Resend Lender</button>`;
   }
   if (currentRole === 'admin') actionBtns += `<button class="dh-btn" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
 
@@ -783,6 +821,10 @@ async function moveDeal(id, newStep, newPhase) {
       body: JSON.stringify({ current_step: newStep, phase: newPhase, updated_at: new Date().toISOString() })
     });
     await logActivity(id, 'Stage updated', `${ALL_LABELS[oldStep]||oldStep} → ${ALL_LABELS[newStep]||newStep}`, currentRole);
+    // Notify lender when manually advanced to notify_lender
+    if (newStep === 'notify_lender') {
+      await sendLenderNotification(deal);
+    }
     // Notify on install scheduled
     if (newStep === 'install_scheduled') {
       await sendInstallNotification(deal);
@@ -796,6 +838,24 @@ async function moveDeal(id, newStep, newPhase) {
   } catch(e) {
     showToast('Error: ' + e.message, 'error');
   }
+}
+
+async function sendLenderNotification(deal) {
+  const lenderEmail = localStorage.getItem('lender_email');
+  if (!lenderEmail) {
+    showToast('Set lender email in Settings first', 'error');
+    return false;
+  }
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+  const body = buildEmailHtml('New Deal Submission', deal, `
+    <p>A new deal has been submitted and requires your attention.</p>
+    ${buildDealDetailsTable(deal)}
+    <p style="margin-top:16px">Please review this lead and initiate the credit application process.</p>
+    <p><a href="https://ronnoco-deal-dashboard.netlify.app" style="background:#1a3a6b;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px">View in Deal Dashboard →</a></p>
+  `);
+  await sendEmail([lenderEmail], `New Deal Lead — ${name} / ${deal.store_name || ''}`, body);
+  await logActivity(deal.id, 'Email sent', `Lender notification sent to ${lenderEmail}`, 'System');
+  return true;
 }
 
 async function sendInstallNotification(deal) {
@@ -812,6 +872,14 @@ async function sendInstallNotification(deal) {
     <p>Please log into the Ronnoco Deal Dashboard for full details.</p>`);
   await sendEmail(recipients, `Installation Scheduled – ${name} / ${deal.store_name||''}`, body);
   await logActivity(deal.id, 'Email sent', 'Installation scheduled notification', 'System');
+}
+
+async function resendLenderEmail(dealId) {
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  const sent = await sendLenderNotification(deal);
+  if (sent) showToast('Lender notification resent!', 'success');
+  selectDeal(dealId);
 }
 
 async function sendCrmEmail(dealId) {
@@ -1030,10 +1098,17 @@ async function createDeal() {
     const result = await sbFetch('deals', { method: 'POST', headers: {...SB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(deal) });
     const newDeal = Array.isArray(result) ? result[0] : result;
     await logActivity(newDeal.id, 'Deal created', 'Created manually', currentRole);
+    // Auto-advance to notify_lender and send lender email
+    await sbFetch(`deals?id=eq.${newDeal.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ current_step: 'notify_lender', updated_at: new Date().toISOString() })
+    });
+    newDeal.current_step = 'notify_lender';
+    const sent = await sendLenderNotification(newDeal);
     closeModal();
     await loadDeals();
     selectDeal(newDeal.id);
-    showToast('Deal created!', 'success');
+    showToast(sent ? 'Deal created & lender notified!' : 'Deal created — set lender email in Settings', sent ? 'success' : '');
   } catch(e) {
     showToast('Error: ' + e.message, 'error');
   }
@@ -1235,6 +1310,7 @@ function showToast(msg, type='') {
 function openSettings() {
   document.getElementById('settingsPanel').classList.add('open');
   document.getElementById('s-apikey').value = localStorage.getItem('jotform_api_key') || '';
+  document.getElementById('s-lender-email').value = localStorage.getItem('lender_email') || '';
   document.getElementById('s-crm-email').value = localStorage.getItem('crm_email') || '';
   document.getElementById('s-from-email').value = localStorage.getItem('from_email') || '';
   document.getElementById('webhookUrl').textContent = window.location.origin + '/.netlify/functions/webhook';
@@ -1262,6 +1338,7 @@ async function testAndSaveApiKey() {
 }
 
 function saveEmailSettings() {
+  localStorage.setItem('lender_email', document.getElementById('s-lender-email').value.trim());
   localStorage.setItem('crm_email', document.getElementById('s-crm-email').value.trim());
   localStorage.setItem('from_email', document.getElementById('s-from-email').value.trim());
   showToast('Email settings saved!', 'success');
