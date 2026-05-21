@@ -52,29 +52,43 @@ exports.handler = async (event) => {
 
     const { first, last } = parseName(contactName);
 
+    // Handle both form structures
+    const firstName = getField(answers, 'first name');
+    const lastName  = getField(answers, 'last name');
+    let first2, last2;
+    if (firstName) { first2 = firstName; last2 = lastName; }
+    else { const p = parseName(contactName); first2 = p.first; last2 = p.last; }
+
+    let address = getField(answers, 'street address');
+    const city  = getField(answers, 'city');
+    const state = getField(answers, 'state');
+    const zip   = getField(answers, 'zip code', 'zip');
+    if (city || state) address = [address, city, state, zip].filter(Boolean).join(', ');
+
     const deal = {
       jotform_submission_id: String(subId),
-      first_name:            first,
-      last_name:             last,
+      first_name:            first2,
+      last_name:             last2,
       email:                 getField(answers, 'contacts email', 'contact email', 'email'),
       phone:                 getField(answers, 'contact cell', 'cell phone', 'store phone'),
-      store_name:            storeName,
+      store_name:            getField(answers, 'store name', 'store name (doing business as)', 'doing business as') || storeName,
       legal_business_name:   getField(answers, 'legal business name'),
-      address:               getField(answers, 'street address'),
+      address,
       store_phone:           getField(answers, 'store phone'),
-      customer_account:      getField(answers, 'customer account', 'account#'),
-      chain_store:           getField(answers, 'chain store') || 'No',
-      sales_rep:             salesRep,
-      sales_rep_email:       getField(answers, 'ronnoco sales rep email', 'sales rep email'),
+      customer_account:      getField(answers, 'customer account', 'account#', 'unique id'),
+      chain_store:           getField(answers, 'chain store', 'multiple locations') || 'No',
+      sales_rep:             getField(answers, 'ronnoco sales rep assigned', 'ronnoco sales rep') || salesRep,
+      sales_rep_email:       getField(answers, 'ronnoco sales rep email'),
       rom:                   getField(answers, 'select the rom', 'rom'),
-      coffee_program:        getField(answers, 'coffee program'),
-      deal_type:             getField(answers, 'pick which is applicable', 'deal type', 'type'),
-      equipment_selection:   getField(answers, 'select equipment', 'equipment needed'),
+      rom_email:             getField(answers, 'rom email'),
+      coffee_program:        getField(answers, 'which program', 'coffee program'),
+      deal_type:             getField(answers, 'parts & service option', 'pick which is applicable', 'deal type'),
+      equipment_selection:   getField(answers, 'please select equipment', 'select equipment', 'equipment needed'),
       total_eq_cost:         getField(answers, 'total eq cost', 'total amount'),
-      target_install_date:   getField(answers, 'target install date', 'install date'),
+      target_install_date:   getField(answers, 'target install date', 'install date', 'need by date'),
       emergency_install:     getField(answers, 'emergency install') || 'No',
-      parent_distributor:    getField(answers, 'parent distributor', 'distributor name'),
-      sub_group:             getField(answers, 'sub group', 'subgroup'),
+      parent_distributor:    getField(answers, 'parent distributor', 'distributor name', 'distributor'),
+      sub_group:             getField(answers, 'sub group', 'subgroup', 'customer type'),
       distributor_rep_email: getField(answers, 'distributor rep email', 'dist rep email'),
       graphics_package:      getField(answers, 'pick a graphics package', 'graphics package'),
       notes:                 getField(answers, 'additional note', 'equipment & service notes', 'notes'),
