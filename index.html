@@ -456,31 +456,38 @@ input,textarea,select{font-family:inherit;font-size:13px}
     <div id="stab-content-team" style="display:none">
       <div class="settings-section">
         <div class="settings-section-title">Team Members</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Add team members who can be assigned to notification rules.</div>
-        <div id="teamMemberList" style="margin-bottom:12px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:end">
-          <div>
-            <label class="form-label">Name</label>
-            <input class="settings-input" id="tm-name" placeholder="Full name" style="width:100%"/>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Add team members and select which pipeline notifications each person receives.</div>
+        <div id="teamMemberList" style="margin-bottom:16px"></div>
+
+        <!-- Add new member form -->
+        <div style="background:var(--gray-50);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:10px">Add Team Member</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+            <div>
+              <label class="form-label">Name</label>
+              <input class="settings-input" id="tm-name" placeholder="Full name" style="width:100%"/>
+            </div>
+            <div>
+              <label class="form-label">Email</label>
+              <input class="settings-input" id="tm-email" type="email" placeholder="email@company.com" style="width:100%"/>
+            </div>
+            <div>
+              <label class="form-label">Role</label>
+              <select class="settings-input" id="tm-role" style="width:100%">
+                <option>Sales Rep</option>
+                <option>Leasing</option>
+                <option>Ops</option>
+                <option>Service</option>
+                <option>Manager</option>
+                <option>ROM</option>
+                <option>Lender</option>
+                <option>Admin</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label class="form-label">Email</label>
-            <input class="settings-input" id="tm-email" type="email" placeholder="email@company.com" style="width:100%"/>
-          </div>
-          <div>
-            <label class="form-label">Role</label>
-            <select class="settings-input" id="tm-role" style="width:100%">
-              <option>Sales Rep</option>
-              <option>Leasing</option>
-              <option>Ops</option>
-              <option>Service</option>
-              <option>Manager</option>
-              <option>ROM</option>
-              <option>Lender</option>
-              <option>Admin</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" onclick="addTeamMember()" style="height:32px">+ Add</button>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:8px">Notifications to receive</div>
+          <div id="tm-notification-checkboxes" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+          <button class="btn btn-primary" onclick="addTeamMember()">+ Add Team Member</button>
         </div>
       </div>
     </div>
@@ -1465,27 +1472,117 @@ function switchSettingsTab(tab) {
 // ─── TEAM MEMBERS ─────────────────────────────────────────────────────────────
 let teamMembers = [];
 
+const TM_NOTIFICATIONS = [
+  { key: 'submitted',         label: 'New Deal' },
+  { key: 'credit_approved',   label: 'Credit Approved' },
+  { key: 'credit_denied',     label: 'Credit Denied' },
+  { key: 'funded',            label: 'Deal Funded' },
+  { key: 'equip_ordered',     label: 'Equipment Ordered' },
+  { key: 'install_scheduled', label: 'Install Scheduled' },
+  { key: 'weekly_digest',     label: 'Weekly Digest' },
+];
+
 async function loadTeamMembers() {
   try {
     teamMembers = await sbFetch('team_members?order=name.asc&select=*') || [];
     renderTeamMembers();
+    renderAddMemberCheckboxes();
   } catch(e) { showToast('Error loading team members', 'error'); }
+}
+
+function renderAddMemberCheckboxes() {
+  const container = document.getElementById('tm-notification-checkboxes');
+  if (!container) return;
+  container.innerHTML = TM_NOTIFICATIONS.map(n => `
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);padding:4px 10px;border:0.5px solid var(--gray-300);border-radius:20px;cursor:pointer;background:var(--surface)">
+      <input type="checkbox" id="tm-notif-${n.key}" style="width:12px;height:12px"/>
+      ${n.label}
+    </label>`).join('');
 }
 
 function renderTeamMembers() {
   const list = document.getElementById('teamMemberList');
   if (!list) return;
   if (!teamMembers.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">No team members yet. Add one below.</div>';
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0 12px">No team members yet. Add one below.</div>';
     return;
   }
-  list.innerHTML = teamMembers.map(m => `
-    <div class="tm-row">
-      <span class="tm-name">${m.name}</span>
-      <span class="tm-email">${m.email}</span>
-      <span class="tm-role">${m.role}</span>
-      <button class="btn btn-danger" style="padding:3px 8px;font-size:11px" onclick="removeTeamMember('${m.id}')">Remove</button>
-    </div>`).join('');
+  list.innerHTML = teamMembers.map(m => {
+    const notifs = m.notifications || [];
+    const notifBadges = TM_NOTIFICATIONS
+      .filter(n => notifs.includes(n.key))
+      .map(n => `<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:var(--blue-100);color:var(--navy);border:0.5px solid var(--blue-200)">${n.label}</span>`)
+      .join('');
+    return `
+    <div class="tm-row" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="tm-name">${m.name}</span>
+        <span class="tm-email">${m.email}</span>
+        <span class="tm-role">${m.role}</span>
+        <button class="btn" style="padding:3px 8px;font-size:11px;margin-left:auto" onclick="editTeamMemberNotifs('${m.id}')">✎ Edit notifications</button>
+        <button class="btn btn-danger" style="padding:3px 8px;font-size:11px" onclick="removeTeamMember('${m.id}')">Remove</button>
+      </div>
+      <div id="tm-notif-display-${m.id}" style="display:flex;flex-wrap:wrap;gap:4px;min-height:20px">
+        ${notifBadges || '<span style="font-size:11px;color:var(--text3);font-style:italic">No notifications selected</span>'}
+      </div>
+      <div id="tm-notif-editor-${m.id}" style="display:none;flex-wrap:wrap;gap:6px;padding-top:6px;border-top:0.5px solid var(--border)">
+        ${TM_NOTIFICATIONS.map(n => `
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);padding:4px 10px;border:0.5px solid var(--gray-300);border-radius:20px;cursor:pointer;background:var(--surface)">
+            <input type="checkbox" id="tm-edit-notif-${m.id}-${n.key}" ${notifs.includes(n.key)?'checked':''} style="width:12px;height:12px"/>
+            ${n.label}
+          </label>`).join('')}
+        <button class="btn btn-primary" style="padding:4px 12px;font-size:11px" onclick="saveTeamMemberNotifs('${m.id}')">Save</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function editTeamMemberNotifs(id) {
+  const editor = document.getElementById(`tm-notif-editor-${id}`);
+  const display = document.getElementById(`tm-notif-display-${id}`);
+  if (!editor) return;
+  const isOpen = editor.style.display !== 'none';
+  editor.style.display = isOpen ? 'none' : 'flex';
+  if (display) display.style.display = isOpen ? 'flex' : 'none';
+}
+
+async function saveTeamMemberNotifs(id) {
+  const selected = TM_NOTIFICATIONS
+    .filter(n => document.getElementById(`tm-edit-notif-${id}-${n.key}`)?.checked)
+    .map(n => n.key);
+  try {
+    await sbFetch(`team_members?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notifications: selected })
+    });
+    // Update local cache
+    const member = teamMembers.find(m => m.id === id);
+    if (member) member.notifications = selected;
+    // Also update notification_rules recipient_ids for each stage
+    await syncNotificationRulesFromMembers();
+    showToast('Notifications saved!', 'success');
+    renderTeamMembers();
+    // Close editor
+    const editor = document.getElementById(`tm-notif-editor-${id}`);
+    const display = document.getElementById(`tm-notif-display-${id}`);
+    if (editor) editor.style.display = 'none';
+    if (display) display.style.display = 'flex';
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function syncNotificationRulesFromMembers() {
+  // Rebuild notification_rules recipient_ids from team member notification preferences
+  for (const stage of TM_NOTIFICATIONS.map(n => n.key)) {
+    const recipients = teamMembers
+      .filter(m => (m.notifications || []).includes(stage))
+      .map(m => m.id);
+    try {
+      await sbFetch(`notification_rules?stage=eq.${stage}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ recipient_ids: recipients, updated_at: new Date().toISOString() })
+      });
+    } catch(e) { console.warn('Rule sync failed for', stage, e); }
+  }
 }
 
 async function addTeamMember() {
@@ -1493,20 +1590,35 @@ async function addTeamMember() {
   const email = document.getElementById('tm-email').value.trim();
   const role = document.getElementById('tm-role').value;
   if (!name || !email) { showToast('Name and email are required', 'error'); return; }
+  const notifications = TM_NOTIFICATIONS
+    .filter(n => document.getElementById(`tm-notif-${n.key}`)?.checked)
+    .map(n => n.key);
   try {
-    await sbFetch('team_members', { method: 'POST', body: JSON.stringify({ name, email, role, active: true }) });
+    const result = await sbFetch('team_members', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ name, email, role, active: true, notifications })
+    });
+    // Clear form
     document.getElementById('tm-name').value = '';
     document.getElementById('tm-email').value = '';
+    TM_NOTIFICATIONS.forEach(n => {
+      const cb = document.getElementById(`tm-notif-${n.key}`);
+      if (cb) cb.checked = false;
+    });
     showToast(`${name} added!`, 'success');
     await loadTeamMembers();
+    await syncNotificationRulesFromMembers();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
 async function removeTeamMember(id) {
   try {
     await sbFetch(`team_members?id=eq.${id}`, { method: 'DELETE' });
+    teamMembers = teamMembers.filter(m => m.id !== id);
+    await syncNotificationRulesFromMembers();
     showToast('Team member removed', 'success');
-    await loadTeamMembers();
+    renderTeamMembers();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
