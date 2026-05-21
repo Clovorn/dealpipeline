@@ -39,16 +39,49 @@ function parseName(fullName) {
 }
 
 // Map Jotform submission answers to deal fields
+// Handles both Deal Sheet (260154983685872) and Distributor Lead (253445565512862)
 function mapSubmission(sub) {
   const answers = sub.answers || {};
 
-  // Contact name — Jotform stores as "Contact Name" full text field
+  // Contact name — try direct first/last fields first (Distributor form),
+  // then fall back to full Contact Name field (Deal Sheet form)
+  const firstName = getField(answers, 'first name');
+  const lastName  = getField(answers, 'last name');
   const contactName = getField(answers, 'contact name');
-  const { first, last } = parseName(contactName);
+  let first, last;
+  if (firstName) {
+    first = firstName;
+    last  = lastName;
+  } else {
+    const parsed = parseName(contactName);
+    first = parsed.first;
+    last  = parsed.last;
+  }
 
-  // Sales rep — stored as "Ronnoco Sales Rep" with first/last subfields
-  const salesRepFirst = getField(answers, 'ronnoco sales rep');
-  const salesRep = salesRepFirst || '';
+  // Sales rep — Distributor form uses "Ronnoco Sales Rep Assigned", Deal Sheet uses "Ronnoco Sales Rep"
+  const salesRep = getField(answers, 'ronnoco sales rep assigned', 'ronnoco sales rep') || '';
+  const salesRepEmail = getField(answers, 'ronnoco sales rep email');
+
+  // Equipment — Distributor form uses "My Products", Deal Sheet uses "Select Equipment Needed"
+  const equipment = getField(answers, 'my products', 'select equipment', 'equipment needed', 'please select equipment');
+
+  // Deal type — Distributor form uses "Parts & Service Option", Deal Sheet uses "Pick which is applicable"
+  const dealType = getField(answers, 'parts & service option', 'pick which is applicable', 'deal type');
+
+  // ROM email — Distributor form has its own ROM Email field
+  const romEmail = getField(answers, 'rom email');
+
+  // Unique ID (Distributor form only)
+  const uniqueId = getField(answers, 'unique id');
+
+  // Address — combine street + city + state + zip if separate fields exist
+  let address = getField(answers, 'street address');
+  const city  = getField(answers, 'city');
+  const state = getField(answers, 'state');
+  const zip   = getField(answers, 'zip code', 'zip');
+  if (city || state) {
+    address = [address, city, state, zip].filter(Boolean).join(', ');
+  }
 
   const deal = {
     jotform_submission_id: String(sub.id),
@@ -56,23 +89,25 @@ function mapSubmission(sub) {
     last_name:             last,
     email:                 getField(answers, 'contacts email', 'contact email', 'email'),
     phone:                 getField(answers, 'contact cell', 'cell phone', 'store phone'),
-    store_name:            getField(answers, 'store name'),
+    store_name:            getField(answers, 'store name', 'store name (doing business as)', 'doing business as'),
     legal_business_name:   getField(answers, 'legal business name'),
-    address:               getField(answers, 'street address'),
+    address,
     store_phone:           getField(answers, 'store phone'),
-    customer_account:      getField(answers, 'customer account', 'account#'),
-    chain_store:           getField(answers, 'chain store') || 'No',
+    customer_account:      getField(answers, 'customer account', 'account#', 'unique id'),
+    chain_store:           getField(answers, 'chain store', 'multiple locations') || 'No',
     sales_rep:             salesRep,
-    sales_rep_email:       getField(answers, 'ronnoco sales rep email', 'sales rep email'),
+    sales_rep_email:       salesRepEmail,
     rom:                   getField(answers, 'select the rom', 'rom'),
-    coffee_program:        getField(answers, 'coffee program'),
-    deal_type:             getField(answers, 'pick which is applicable', 'deal type', 'type'),
-    equipment_selection:   getField(answers, 'select equipment', 'equipment needed'),
+    rom_email:             romEmail,
+    coffee_program:        getField(answers, 'which program', 'coffee program'),
+    deal_type:             dealType,
+    equipment_selection:   equipment,
     total_eq_cost:         getField(answers, 'total eq cost', 'total amount'),
     target_install_date:   getField(answers, 'target install date', 'install date'),
+    need_by_date:          getField(answers, 'need by date'),
     emergency_install:     getField(answers, 'emergency install') || 'No',
-    parent_distributor:    getField(answers, 'parent distributor', 'distributor name'),
-    sub_group:             getField(answers, 'sub group', 'subgroup'),
+    parent_distributor:    getField(answers, 'parent distributor', 'distributor name', 'distributor'),
+    sub_group:             getField(answers, 'sub group', 'subgroup', 'customer type'),
     distributor_rep_email: getField(answers, 'distributor rep email', 'dist rep email'),
     graphics_package:      getField(answers, 'pick a graphics package', 'graphics package'),
     notes:                 getField(answers, 'additional note', 'equipment & service notes', 'notes'),
