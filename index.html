@@ -1503,37 +1503,34 @@ async function syncJotform() {
 
 async function confirmDelete(dealId) {
   const deal = deals.find(d => d.id === dealId);
-  if (!deal) return;
-  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
-  showModal(`
-    <div class="modal-title">Delete Deal</div>
-    <div class="modal-sub">Are you sure you want to permanently delete <strong>${name}</strong>?</div>
-    <div class="deny-warning">This cannot be undone. All notes, documents, and activity will be deleted.</div>
-    <div class="modal-actions">
-      <button class="btn" onclick="forceCloseModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="deleteDeal('${dealId}')">Delete permanently</button>
-    </div>
-  `);
+  if (!deal) { alert('Deal not found'); return; }
+  const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ') || deal.store_name;
+  if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+  await deleteDeal(dealId);
 }
 
 async function deleteDeal(id) {
+  showToast('Deleting…');
   try {
-    // Delete related records first to avoid FK constraint issues
-    await sbFetch(`deal_notes?deal_id=eq.${id}`, { method: 'DELETE' });
-    await sbFetch(`deal_activity?deal_id=eq.${id}`, { method: 'DELETE' });
-    await sbFetch(`deal_documents?deal_id=eq.${id}`, { method: 'DELETE' });
-    // Now delete the deal itself
-    await sbFetch(`deals?id=eq.${id}`, { method: 'DELETE' });
+    const res = await fetch(`${SB_URL}/rest/v1/deals?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err);
+    }
     deals = deals.filter(d => d.id !== id);
     currentDealId = null;
+    forceCloseModal();
     updateMetrics();
     renderDealList();
     document.getElementById('detailPanel').innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">📋</div><div style="font-size:14px;font-weight:600;color:var(--text2)">Select a deal to view details</div></div>`;
-    forceCloseModal();
     showToast('Deal deleted', 'success');
   } catch(e) {
     showToast('Delete failed: ' + e.message, 'error');
     console.error('Delete error:', e);
+    alert('Delete failed: ' + e.message);
   }
 }
 
