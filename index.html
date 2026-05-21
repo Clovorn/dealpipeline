@@ -557,7 +557,8 @@ function getFilteredDeals() {
       if (step === 'funded' || d.phase === 'ops') return false;
     } else if (currentView === 'funded') {
       if (isClosed) return false;
-      if (step !== 'funded') return false;
+      // Funded tab = all deals that have been funded (ops phase) + deals at funded step
+      if (step !== 'funded' && d.phase !== 'ops') return false;
     } else if (currentView === 'ops') {
       if (isClosed) return false;
       if (d.phase !== 'ops' || step === 'complete') return false;
@@ -585,6 +586,22 @@ function renderDealList() {
   const filtered = getFilteredDeals();
   const list = document.getElementById('dealList');
   document.getElementById('dealCountLabel').textContent = `${filtered.length} deal${filtered.length !== 1 ? 's' : ''}`;
+  // Show funded total below list header when in funded view
+  let fundedTotalEl = document.getElementById('fundedTotalBar');
+  if (currentView === 'funded') {
+    const fundedTotal = filtered.reduce((s, d) => s + parseCost(d.total_eq_cost), 0);
+    if (!fundedTotalEl) {
+      const bar = document.createElement('div');
+      bar.id = 'fundedTotalBar';
+      bar.style.cssText = 'padding:8px 14px;background:#fdf0d8;border-bottom:0.5px solid #f5cc80;font-size:12px;display:flex;justify-content:space-between;align-items:center';
+      document.getElementById('dealListPanel').insertBefore(bar, document.getElementById('dealList'));
+      fundedTotalEl = bar;
+    }
+    fundedTotalEl.innerHTML = `<span style="color:#7a4a0a;font-weight:500">Total Funded Portfolio</span><span style="color:#7a4a0a;font-size:14px;font-weight:700">${fmtCurrency(fundedTotal)}</span>`;
+    fundedTotalEl.style.display = 'flex';
+  } else if (fundedTotalEl) {
+    fundedTotalEl.style.display = 'none';
+  }
   const viewLabels = {leasing:'Leasing',funded:'Funded',ops:'Ops',complete:'Complete',closed:'Closed/Lost'};
   document.getElementById('dealListRole').textContent = viewLabels[currentView] || currentView;
 
