@@ -860,7 +860,7 @@ function renderDetail(deal, notes, activity, docs) {
   if (!isClosed && (currentRole === 'admin' || currentRole === 'leasing') && deal.phase === 'leasing') {
     actionBtns += `<button class="dh-btn" style="background:rgba(83,74,183,0.1);border-color:#afa9ec;color:#3c3489" onclick="resendLenderEmail('${deal.id}')">↻ Resend Lender</button>`;
   }
-  if (currentRole === 'admin') actionBtns += `<button class="dh-btn" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
+  actionBtns += `<button class="dh-btn" style="background:rgba(163,45,45,0.15);border-color:var(--red-200);color:var(--red-600)" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
 
   // Pipeline tracker
   const trackerSteps = steps.map((s, i) => {
@@ -1510,7 +1510,7 @@ async function confirmDelete(dealId) {
     <div class="modal-sub">Are you sure you want to permanently delete <strong>${name}</strong>?</div>
     <div class="deny-warning">This cannot be undone. All notes, documents, and activity will be deleted.</div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="forceCloseModal()">Cancel</button>
       <button class="btn btn-danger" onclick="deleteDeal('${dealId}')">Delete permanently</button>
     </div>
   `);
@@ -1529,7 +1529,7 @@ async function deleteDeal(id) {
     updateMetrics();
     renderDealList();
     document.getElementById('detailPanel').innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">📋</div><div style="font-size:14px;font-weight:600;color:var(--text2)">Select a deal to view details</div></div>`;
-    closeModal();
+    forceCloseModal();
     showToast('Deal deleted', 'success');
   } catch(e) {
     showToast('Delete failed: ' + e.message, 'error');
@@ -1596,6 +1596,9 @@ function showModal(html) {
 }
 function closeModal(e) {
   if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modalContainer').innerHTML = '';
+}
+function forceCloseModal() {
   document.getElementById('modalContainer').innerHTML = '';
 }
 
