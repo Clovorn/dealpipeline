@@ -738,21 +738,24 @@ async function selectDeal(id) {
 function parseEquipment(raw) {
   if (!raw) return [];
   try {
-    // The last JSON object in the string contains the product array summary
-    const lastBrace = raw.lastIndexOf('{"product"');
-    if (lastBrace === -1) return [];
-    const summary = JSON.parse(raw.slice(lastBrace));
-    const products = summary.product || [];
-    // Also parse individual product objects for price/qty
-    const items = [];
-    const productRegex = /\{"cid":[^}]+?"name":"([^"]+)"[^}]+?"price":([0-9.]+)[^}]+?"quantity":([0-9]+)/g;
-    let match;
+    // Handle our clean saved JSON format {"items":[...]}
+    if (raw.trim().startsWith('{"items"')) {
+      const saved = JSON.parse(raw);
+      return (saved.items || []).map(i => ({ name: (i.num ? i.num + ' - ' : '') + i.name, price: i.price, qty: i.qty }));
+    }
+    // Handle Jotform product format — extract from individual product objects
     const parsed = [];
+    const productRegex = /"name":"([^"]+)"[^}]*?"price":([0-9.]+)[^}]*?"quantity":([0-9]+)/g;
+    let match;
     while ((match = productRegex.exec(raw)) !== null) {
       parsed.push({ name: match[1], price: parseFloat(match[2]), qty: parseInt(match[3]) });
     }
-    return parsed.length ? parsed : products.map(p => {
-      // Parse from string like "0750407021E - Name (Amount: 1,008.55 USD, Quantity: 1)"
+    if (parsed.length) return parsed;
+    // Fallback: parse summary product array strings
+    const lastBrace = raw.lastIndexOf('{"product"');
+    if (lastBrace === -1) return [];
+    const summary = JSON.parse(raw.slice(lastBrace));
+    return (summary.product || []).map(p => {
       const m = p.match(/^(.+?)\s*\(Amount:\s*([\d,]+\.?\d*)\s*USD,\s*Quantity:\s*(\d+)/);
       if (m) return { name: m[1].trim(), price: parseFloat(m[2].replace(/,/g,'')), qty: parseInt(m[3]) };
       return { name: p, price: 0, qty: 1 };
@@ -773,7 +776,7 @@ function parseItemName(name) {
   return name.replace(/^[A-Z0-9][A-Z0-9\-\.]+[A-Z0-9]\s*[-–]\s*/,'').trim();
 }
 
-function renderEquipmentTable(raw) {
+function renderEquipmentTable(raw, dealId) {
   const items = parseEquipment(raw);
   if (!items.length) return '<div style="font-size:12px;color:var(--text3);font-style:italic">No equipment selected</div>';
   
@@ -788,7 +791,10 @@ function renderEquipmentTable(raw) {
       <td style="padding:7px 10px;font-size:12px;color:var(--text);border-bottom:0.5px solid var(--gray-100);vertical-align:middle">${itemName}</td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:center;white-space:nowrap;vertical-align:middle">${item.qty}</td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(item.price)}</td>
-      <td style="padding:7px 10px;font-size:12px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(lineTotal)}</td>
+      <td style="padding:7px 10px;font-size:12px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">
+        ${fmt(lineTotal)}
+        <button onclick="removeEquipmentRow(this, '\${dealId}')" style="margin-left:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;vertical-align:middle;padding:0" title="Remove">✕</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -802,15 +808,20 @@ function renderEquipmentTable(raw) {
         <th style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);text-align:right;border-bottom:0.5px solid var(--border);white-space:nowrap">Line Total</th>
       </tr>
     </thead>
-    <tbody>${rows}</tbody>
-    <tfoot>
-      <tr style="background:var(--gray-100);border-top:1.5px solid var(--border)">
-        <td colspan="4" style="padding:8px 10px;font-size:12px;font-weight:600;color:var(--text2)">Subtotal (${items.length} item${items.length!==1?'s':''})</td>
-        <td style="padding:8px 10px;font-size:13px;font-weight:700;color:var(--text);text-align:right">${fmt(total)}</td>
+    <tbody id="eq-tbody-\${dealId}">${rows}</tbody>
+    <tbody>
+      <tr>
+        <td style="padding:6px 10px"><input id="eq-new-num-\${dealId}" class="field-input" placeholder="Item #" style="width:100%;font-size:11px;font-family:monospace;padding:4px 7px"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-name-\${dealId}" class="field-input" placeholder="Description" style="width:100%;font-size:12px;padding:4px 7px"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-qty-\${dealId}" class="field-input" placeholder="1" type="number" min="1" style="width:60px;font-size:12px;padding:4px 7px;text-align:center"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-price-\${dealId}" class="field-input" placeholder="0.00" type="number" min="0" step="0.01" style="width:90px;font-size:12px;padding:4px 7px;text-align:right"/></td>
+        <td style="padding:6px 10px;text-align:right"><button class="btn btn-primary" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="addEquipmentItem('\${dealId}')">+ Add</button></td>
       </tr>
+    </tbody>
+    <tfoot>
       <tr style="background:var(--navy)">
         <td colspan="4" style="padding:9px 10px;font-size:12px;font-weight:600;color:#fff">Grand Total — Equipment Cost</td>
-        <td style="padding:9px 10px;font-size:14px;font-weight:700;color:#fff;text-align:right">${fmt(total)}</td>
+        <td style="padding:9px 10px;font-size:14px;font-weight:700;color:#fff;text-align:right" id="eq-grand-total-\${dealId}">${fmt(total)}</td>
       </tr>
     </tfoot>
   </table>`;
@@ -974,7 +985,7 @@ function renderDetail(deal, notes, activity, docs) {
         <div class="section-title" style="margin:0">Equipment Selection</div>
         <span style="font-size:10px;color:var(--text3)">${parseEquipment(deal.equipment_selection).length} item${parseEquipment(deal.equipment_selection).length!==1?'s':''}</span>
       </div>
-      ${renderEquipmentTable(deal.equipment_selection)}
+      ${renderEquipmentTable(deal.equipment_selection, deal.id)}
     </div>
 
     <div class="section-card">
@@ -1000,6 +1011,88 @@ function renderDetail(deal, notes, activity, docs) {
       <div id="activityList_${deal.id}">${activityList}</div>
     </div>
   `;
+}
+
+function updateEqGrandTotal(dealId) {
+  const tbody = document.getElementById(`eq-tbody-${dealId}`);
+  if (!tbody) return;
+  let total = 0;
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 5) return;
+    // Line total is in the last cell text (strip $ and commas)
+    const text = cells[4].innerText.replace(/[^0-9.]/g,'');
+    total += parseFloat(text) || 0;
+  });
+  const el = document.getElementById(`eq-grand-total-${dealId}`);
+  if (el) el.textContent = '$' + total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function removeEquipmentRow(btn, dealId) {
+  const row = btn.closest('tr');
+  if (row) row.remove();
+  updateEqGrandTotal(dealId);
+  saveEquipmentChanges(dealId);
+}
+
+function addEquipmentItem(dealId) {
+  const numEl   = document.getElementById(`eq-new-num-${dealId}`);
+  const nameEl  = document.getElementById(`eq-new-name-${dealId}`);
+  const qtyEl   = document.getElementById(`eq-new-qty-${dealId}`);
+  const priceEl = document.getElementById(`eq-new-price-${dealId}`);
+  const name  = nameEl.value.trim();
+  const num   = numEl.value.trim();
+  const qty   = parseInt(qtyEl.value) || 1;
+  const price = parseFloat(priceEl.value) || 0;
+  if (!name) { showToast('Please enter a description', 'error'); return; }
+  const fmt = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const lineTotal = price * qty;
+  const tbody = document.getElementById(`eq-tbody-${dealId}`);
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="padding:7px 10px;font-size:11px;font-family:monospace;font-weight:600;color:var(--navy);border-bottom:0.5px solid var(--gray-100);white-space:nowrap;vertical-align:middle">${num || '—'}</td>
+    <td style="padding:7px 10px;font-size:12px;color:var(--text);border-bottom:0.5px solid var(--gray-100);vertical-align:middle">${name}</td>
+    <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:center;white-space:nowrap;vertical-align:middle">${qty}</td>
+    <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(price)}</td>
+    <td style="padding:7px 10px;font-size:12px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">
+      ${fmt(lineTotal)}
+      <button onclick="removeEquipmentRow(this,'${dealId}')" style="margin-left:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;vertical-align:middle;padding:0" title="Remove">✕</button>
+    </td>`;
+  tbody.appendChild(tr);
+  // Clear inputs
+  numEl.value = ''; nameEl.value = ''; qtyEl.value = ''; priceEl.value = '';
+  updateEqGrandTotal(dealId);
+  saveEquipmentChanges(dealId);
+  showToast('Item added', 'success');
+}
+
+async function saveEquipmentChanges(dealId) {
+  // Collect current rows from the table and save as structured JSON to equipment_selection
+  const tbody = document.getElementById(`eq-tbody-${dealId}`);
+  if (!tbody) return;
+  const items = [];
+  tbody.querySelectorAll('tr').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 5) return;
+    const num   = cells[0].innerText.trim().replace('—','');
+    const name  = cells[1].innerText.trim();
+    const qty   = parseInt(cells[2].innerText.trim()) || 1;
+    const price = parseFloat(cells[3].innerText.replace(/[^0-9.]/g,'')) || 0;
+    if (name) items.push({ num, name, qty, price });
+  });
+  const total = items.reduce((s,i) => s + i.price * i.qty, 0);
+  // Save as clean JSON string
+  const saved = JSON.stringify({ items, total });
+  try {
+    await sbFetch(`deals?id=eq.${dealId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ equipment_selection: saved, total_eq_cost: '$' + total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) })
+    });
+    // Update local cache
+    const deal = deals.find(d => d.id === dealId);
+    if (deal) { deal.equipment_selection = saved; deal.total_eq_cost = '$' + total.toFixed(2); }
+  } catch(e) { console.warn('Equipment save failed:', e); }
 }
 
 async function moveDeal(id, newStep, newPhase) {
