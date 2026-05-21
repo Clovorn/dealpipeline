@@ -700,8 +700,6 @@ function renderDealList() {
 
   list.innerHTML = filtered.map(d => {
     const name = [d.first_name, d.last_name].filter(Boolean).join(' ') || 'Unknown';
-    const storeName = deal.store_name || name;
-  const initials = storeName.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
     const step = d.current_step;
     const isClosed = d.deal_status === 'closed';
     const badgeClass = isClosed ? 'denied' : step === 'complete' ? 'complete' : step === 'funded' ? 'funded' : d.phase === 'ops' ? 'ops' : 'leasing';
