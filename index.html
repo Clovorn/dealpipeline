@@ -902,8 +902,8 @@ function renderDetail(deal, notes, activity, docs) {
 
   const uploadArea = (currentRole === 'admin' || currentRole === 'leasing') ? `
     <div class="upload-area" onclick="document.getElementById('fileInput_${deal.id}').click()">
-      <input type="file" id="fileInput_${deal.id}" accept=".pdf" style="display:none" onchange="uploadDoc('${deal.id}',this)"/>
-      <div class="upload-label">Drop PDF or <span>click to upload</span></div>
+      <input type="file" id="fileInput_${deal.id}" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="uploadDoc('${deal.id}',this)"/>
+      <div class="upload-label">Drop PDF or image, or <span>click to upload</span></div>
     </div>` : '';
 
   // Notes
@@ -1329,26 +1329,58 @@ async function addNote(dealId) {
 
 async function uploadDoc(dealId, input) {
   const file = input.files[0];
-  if (!file || !file.name.endsWith('.pdf')) { showToast('Please select a PDF file', 'error'); return; }
+  if (!file) return;
+  // Accept PDF and common image types
+  const allowed = ['application/pdf','image/png','image/jpeg','image/jpg'];
+  if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|png|jpg|jpeg)$/i)) {
+    showToast('Please select a PDF or image file', 'error');
+    return;
+  }
   showToast('Uploading…');
   try {
-    const fileName = `${dealId}/${Date.now()}_${file.name}`;
+    // Sanitize filename — remove special chars that break storage URLs
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `${dealId}/${Date.now()}_${safeName}`;
+    const contentType = file.type || 'application/octet-stream';
+
     const uploadRes = await fetch(`${SB_URL}/storage/v1/object/deal-documents/${fileName}`, {
       method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/pdf' },
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        'Content-Type': contentType,
+        'x-upsert': 'true'
+      },
       body: file
     });
-    if (!uploadRes.ok) throw new Error('Upload failed');
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Storage error ${uploadRes.status}: ${errText}`);
+    }
+
     const fileUrl = `${SB_URL}/storage/v1/object/public/deal-documents/${fileName}`;
+
+    // Save record to deal_documents table
     await sbFetch('deal_documents', {
       method: 'POST',
-      body: JSON.stringify({ deal_id: dealId, file_name: file.name, file_url: fileUrl, file_size: file.size, uploaded_by: currentRole })
+      body: JSON.stringify({
+        deal_id: dealId,
+        file_name: file.name,
+        file_url: fileUrl,
+        file_size: file.size,
+        uploaded_by: currentRole
+      })
     });
+
     await logActivity(dealId, 'Document uploaded', file.name, currentRole);
+    // Reset the file input so the same file can be uploaded again if needed
+    input.value = '';
     showToast('Document uploaded!', 'success');
     selectDeal(dealId);
   } catch(e) {
     showToast('Upload error: ' + e.message, 'error');
+    console.error('Upload error:', e);
   }
 }
 
