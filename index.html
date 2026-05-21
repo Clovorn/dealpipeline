@@ -1518,6 +1518,11 @@ async function confirmDelete(dealId) {
 
 async function deleteDeal(id) {
   try {
+    // Delete related records first to avoid FK constraint issues
+    await sbFetch(`deal_notes?deal_id=eq.${id}`, { method: 'DELETE' });
+    await sbFetch(`deal_activity?deal_id=eq.${id}`, { method: 'DELETE' });
+    await sbFetch(`deal_documents?deal_id=eq.${id}`, { method: 'DELETE' });
+    // Now delete the deal itself
     await sbFetch(`deals?id=eq.${id}`, { method: 'DELETE' });
     deals = deals.filter(d => d.id !== id);
     currentDealId = null;
@@ -1525,9 +1530,10 @@ async function deleteDeal(id) {
     renderDealList();
     document.getElementById('detailPanel').innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">📋</div><div style="font-size:14px;font-weight:600;color:var(--text2)">Select a deal to view details</div></div>`;
     closeModal();
-    showToast('Deal deleted', 'error');
+    showToast('Deal deleted', 'success');
   } catch(e) {
     showToast('Delete failed: ' + e.message, 'error');
+    console.error('Delete error:', e);
   }
 }
 
