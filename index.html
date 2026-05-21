@@ -744,6 +744,40 @@ async function selectDeal(id) {
   renderDetail(deal, notes||[], activity||[], docs||[]);
 }
 
+// Parse rich-text description from Jotform bundle products into bullet lines
+function parseBundleDescription(descRaw) {
+  if (!descRaw) return [];
+  try {
+    // Rich-text JSON array: [{type:'paragraph', children:[{text:'• Item — Code'}]}]
+    const nodes = typeof descRaw === 'string' ? JSON.parse(descRaw) : descRaw;
+    if (!Array.isArray(nodes)) return [];
+    const lines = [];
+    for (const node of nodes) {
+      const text = (node.children || []).map(c => c.text || '').join('').trim();
+      if (text && text !== 'Includes:' && text !== '') {
+        // Strip bullet character
+        lines.push(text.replace(/^[•\u2022]\s*/, '').trim());
+      }
+    }
+    return lines;
+  } catch(e) {
+    return [];
+  }
+}
+
+// Bundle product names from Distributor Lead form that contain component lists
+const BUNDLE_NAMES = [
+  'small coffee-bottle brewer', 'small coffee-airpot brewer',
+  'small coffee-single direct heat', 'med/large-dual direct heat',
+  'med/large-combo brewer', 'polar wave program',
+  'small coffee bottle', 'small coffee airpot',
+];
+
+function isBundleProduct(name) {
+  const n = name.toLowerCase();
+  return BUNDLE_NAMES.some(b => n.includes(b));
+}
+
 function parseEquipment(raw) {
   if (!raw) return [];
   try {
@@ -752,7 +786,9 @@ function parseEquipment(raw) {
       const saved = JSON.parse(raw);
       return (saved.items || []).map(i => ({ name: (i.num ? i.num + ' - ' : '') + i.name, price: i.price, qty: i.qty }));
     }
+
     // Handle Jotform product format — extract from individual product objects (Deal Sheet form)
+    // These have "name", "price", "quantity" fields
     const parsed = [];
     const productRegex = /"name":"([^"]+)"[^}]*?"price":([0-9.]+)[^}]*?"quantity":([0-9]+)/g;
     let match;
@@ -760,6 +796,28 @@ function parseEquipment(raw) {
       parsed.push({ name: match[1], price: parseFloat(match[2]), qty: parseInt(match[3]) });
     }
     if (parsed.length) return parsed;
+
+    // Handle Distributor Lead form — paymentArray format with bundle descriptions
+    // Raw contains the full Jotform answers object or paymentArray JSON
+    let paymentObj = null;
+    try {
+      paymentObj = JSON.parse(raw);
+    } catch(e) {}
+
+    if (paymentObj && paymentObj.product) {
+      // paymentArray summary — expand bundles from jotform_answers if available
+      const items = [];
+      for (const p of paymentObj.product) {
+        const m = p.match(/^(.+?)\s*\(Amount:\s*([\d,]+\.?\d*)\s*USD(?:,\s*Quantity:\s*(\d+))?\)/);
+        if (!m) { items.push({ name: p, price: 0, qty: 1, isBundle: false }); continue; }
+        const name = m[1].trim();
+        const price = parseFloat(m[2].replace(/,/g,''));
+        const qty = parseInt(m[3]||'1');
+        items.push({ name, price, qty, isBundle: isBundleProduct(name) });
+      }
+      return items;
+    }
+
     // Fallback: parse summary product array strings (Deal Sheet)
     const lastBrace = raw.lastIndexOf('{"product"');
     if (lastBrace !== -1) {
@@ -770,7 +828,8 @@ function parseEquipment(raw) {
         return { name: p, price: 0, qty: 1 };
       });
     }
-    // Fallback: simple line format "Item Name (Amount: X.XX USD, Quantity: N)"
+
+    // Simple line format fallback
     const lines = raw.split(/[\n\r]/).map(l => l.trim()).filter(Boolean);
     const distItems = [];
     for (const line of lines) {
@@ -785,6 +844,31 @@ function parseEquipment(raw) {
   }
 }
 
+// Get bundle component lines from stored jotform_answers
+function getBundleComponents(deal, bundleName) {
+  if (!deal || !deal.jotform_answers) return [];
+  const answers = deal.jotform_answers;
+  for (const [, v] of Object.entries(answers)) {
+    if (!v || !v.name || v.name !== 'myProducts') continue;
+    const ans = v.answer;
+    if (!ans) continue;
+    // Look through numeric keys for the matching selected product
+    for (const [key, product] of Object.entries(ans)) {
+      if (key === 'paymentArray' || key === 'products') continue;
+      try {
+        const prod = typeof product === 'string' ? JSON.parse(product) : product;
+        if (!prod.name) continue;
+        if (prod.name.toLowerCase().includes(bundleName.toLowerCase().slice(0,15))) {
+          if (prod.description && Array.isArray(prod.description)) {
+            return parseBundleDescription(prod.description);
+          }
+        }
+      } catch(e) {}
+    }
+  }
+  return [];
+}
+
 function parseItemNumber(name) {
   // Extract item number like "0750407021E" from start of name
   const m = name.match(/^([A-Z0-9][A-Z0-9\-\.]+[A-Z0-9])\s*[-–]/);
@@ -796,9 +880,9 @@ function parseItemName(name) {
   return name.replace(/^[A-Z0-9][A-Z0-9\-\.]+[A-Z0-9]\s*[-–]\s*/,'').trim();
 }
 
-function renderEquipmentTable(raw, dealId) {
+function renderEquipmentTable(raw, dealId, deal) {
   const items = parseEquipment(raw);
-  if (!items.length) return '<div style="font-size:12px;color:var(--text3);font-style:italic">No equipment selected</div>';
+  if (!items.length) return '<div style="font-size:12px;color:var(--text3);font-style:italic;padding:10px 14px">No equipment selected</div>';
   
   const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
   const fmt = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1009,7 +1093,7 @@ function renderDetail(deal, notes, activity, docs) {
         <div class="section-title" style="margin:0">Equipment Selection</div>
         <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection).length!==1?'s':''}catch(e){return 's'}})() }</span>
       </div>
-      ${(()=>{try{return renderEquipmentTable(deal.equipment_selection, deal.id)}catch(e){return '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">Unable to parse equipment data</div>'}})()}
+      ${(()=>{try{return renderEquipmentTable(deal.equipment_selection, deal.id, deal)}catch(e){return '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">Unable to parse equipment data</div>'}})()}
     </div>
 
     <div class="section-card">
