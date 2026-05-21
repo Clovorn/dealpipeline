@@ -155,12 +155,33 @@ exports.handler = async (event) => {
         const fields = mapSubmission(sub);
         const existing = existingMap[subId];
 
-        if (existing) {
+        // Also check by store name + first name as fallback for records with CSV-based IDs
+        let matchedByName = null;
+        if (!existing) {
+          const nameCheck = await fetch(
+            `${SB_URL}/rest/v1/deals?store_name=eq.${encodeURIComponent(fields.store_name)}&first_name=eq.${encodeURIComponent(fields.first_name)}&select=id,jotform_submission_id`,
+            { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+          );
+          const nameMatches = await nameCheck.json();
+          if (nameMatches && nameMatches.length > 0) {
+            matchedByName = nameMatches[0];
+          }
+        }
+
+        if (existing || matchedByName) {
+          const matchId = existing ? existing.id : matchedByName.id;
+          // If matched by name, update the submission ID to the real Jotform ID
+          const updateFields = { ...fields };
+          if (matchedByName && (!matchedByName.jotform_submission_id || matchedByName.jotform_submission_id.startsWith('csv-'))) {
+            updateFields.jotform_submission_id = subId;
+            // Add to existingMap so we don't process again
+            existingMap[subId] = { id: matchId };
+          }
           // Update form data only — never overwrite pipeline position
-          await fetch(`${SB_URL}/rest/v1/deals?id=eq.${existing.id}`, {
+          await fetch(`${SB_URL}/rest/v1/deals?id=eq.${matchId}`, {
             method: 'PATCH',
             headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(fields)
+            body: JSON.stringify(updateFields)
           });
           updated++;
         } else {
