@@ -113,6 +113,13 @@ exports.handler = async (event) => {
       if (d.jotform_submission_id) existingMap[d.jotform_submission_id] = d;
     }
 
+    // Load blocklist — these submission IDs are permanently skipped
+    const blocklistRes = await fetch(`${SB_URL}/rest/v1/jotform_blocklist?select=jotform_submission_id`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    const blocklistData = await blocklistRes.json();
+    const blocklist = new Set((blocklistData || []).map(b => b.jotform_submission_id));
+
     let offset = 0;
     const limit = 100;
     let added = 0, updated = 0, skipped = 0;
@@ -132,6 +139,12 @@ exports.handler = async (event) => {
 
       for (const sub of submissions) {
         const subId = String(sub.id);
+
+        // Skip blocklisted submissions permanently
+        if (blocklist.has(subId)) {
+          skipped++;
+          continue;
+        }
 
         // Skip invalid/incomplete submissions (test entries, blanks)
         if (!isValidSubmission(sub)) {
