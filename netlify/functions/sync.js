@@ -18,11 +18,27 @@ function getField(answers, ...keys) {
       if (!ans) return '';
       if (typeof ans === 'string') return ans.trim();
       if (typeof ans === 'object') {
-        // Name fields: {first, last} or {first, middle, last}
+        // Name fields: {first, last}
         if (ans.first !== undefined || ans.last !== undefined) {
           return [ans.first, ans.middle, ans.last].filter(Boolean).join(' ').trim();
         }
+        // Address fields: {addr_line1, city, state, postal}
+        if (ans.addr_line1 !== undefined || ans.city !== undefined) {
+          return [ans.addr_line1, ans.addr_line2, ans.city, ans.state, ans.postal]
+            .filter(Boolean).join(', ').trim();
+        }
+        // Payment/product answer — extract prettyFormat or product array
+        if (ans.paymentArray) {
+          try {
+            const pa = JSON.parse(ans.paymentArray);
+            return JSON.stringify(pa);
+          } catch(e) { return ans.paymentArray; }
+        }
         if (Array.isArray(ans)) return ans.filter(Boolean).join(', ').trim();
+        // Datetime fields: {year, month, day}
+        if (ans.year && ans.month && ans.day) {
+          return `${ans.month}/${ans.day}/${ans.year}`;
+        }
         return Object.values(ans).filter(Boolean).join(' ').trim();
       }
     }
@@ -36,6 +52,24 @@ function parseName(fullName) {
   const parts = fullName.trim().split(/\s+/);
   if (parts.length === 1) return { first: parts[0], last: '' };
   return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
+// Extract equipment from Jotform product widget (handles both form structures)
+function getEquipment(answers) {
+  for (const [, v] of Object.entries(answers)) {
+    if (!v || !v.text) continue;
+    const label = v.text.toLowerCase();
+    if (['please select equipment', 'select equipment', 'equipment needed', 'my products'].some(k => label.includes(k))) {
+      const ans = v.answer;
+      if (!ans) return '';
+      // paymentArray contains the product summary JSON string
+      if (typeof ans === 'object' && ans.paymentArray) {
+        return ans.paymentArray;
+      }
+      if (typeof ans === 'string') return ans;
+    }
+  }
+  return '';
 }
 
 // Map Jotform submission answers to deal fields
