@@ -1236,7 +1236,7 @@ function openDenyModal(dealId) {
       <textarea class="form-textarea" id="denyReason" placeholder="Explain why credit was denied…" rows="4"></textarea>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="forceCloseModal()">Cancel</button>
       <button class="btn btn-danger" onclick="submitDeny('${dealId}')">Confirm Credit Denied</button>
     </div>
   `);
@@ -1375,7 +1375,7 @@ function openNewDealModal() {
       <label for="nd-new-cust" style="font-size:13px;color:var(--text)">New Customer</label>
     </div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="forceCloseModal()">Cancel</button>
       <button class="btn btn-primary" onclick="createDeal()">Create deal</button>
     </div>
   `);
@@ -1397,7 +1397,7 @@ async function createDeal() {
       is_new_customer: document.getElementById('nd-new-cust').checked,
       current_step: 'submitted', phase: 'leasing', deal_status: 'active'
     };
-    const result = await sbFetch('deals', { method: 'POST', headers: {...SB_HEADERS, Prefer:'return=representation'}, body: JSON.stringify(deal) });
+    const result = await sbFetch('deals', { method: 'POST', headers: { Prefer:'return=representation' }, body: JSON.stringify(deal) });
     const newDeal = Array.isArray(result) ? result[0] : result;
     await logActivity(newDeal.id, 'Deal created', 'Created manually', currentRole);
     // Auto-advance to notify_lender and send lender email
@@ -1407,7 +1407,7 @@ async function createDeal() {
     });
     newDeal.current_step = 'notify_lender';
     const sent = await sendLenderNotification(newDeal);
-    closeModal();
+    forceCloseModal();
     await loadDeals();
     selectDeal(newDeal.id);
     showToast(sent ? 'Deal created & lender notified!' : 'Deal created — set lender email in Settings', sent ? 'success' : '');
@@ -1425,7 +1425,7 @@ function openImportModal() {
       <div class="upload-label">Drop CSV or <span>click to upload</span></div>
     </div>
     <div id="importStatus" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>
+    <div class="modal-actions"><button class="btn" onclick="forceCloseModal()">Close</button></div>
   `);
 }
 
