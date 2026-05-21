@@ -299,11 +299,11 @@ input,textarea,select{font-family:inherit;font-size:13px}
 
 <!-- VIEW TABS -->
 <div class="roletabs">
-  <div class="rtab active" data-view="leasing" onclick="setView('leasing',this)">Leasing</div>
+  <div class="rtab active" data-view="leasing" onclick="setView('leasing',this)">In Financing</div>
+  <div class="rtab" data-view="ops" onclick="setView('ops',this)">Operations</div>
   <div class="rtab" data-view="funded" onclick="setView('funded',this)">Funded</div>
-  <div class="rtab" data-view="ops" onclick="setView('ops',this)">Ops</div>
   <div class="rtab" data-view="complete" onclick="setView('complete',this)">Complete</div>
-  <div class="rtab" data-view="closed" onclick="setView('closed',this)">Closed / Lost</div>
+  <div class="rtab" data-view="closed" onclick="setView('closed',this)">Dead / Lost</div>
   <div style="flex:1"></div>
   <div class="rtab" id="roleTab" onclick="cycleRole(this)" style="border-left:0.5px solid rgba(255,255,255,0.1)">Role: Admin</div>
 </div>
@@ -602,7 +602,7 @@ function renderDealList() {
   } else if (fundedTotalEl) {
     fundedTotalEl.style.display = 'none';
   }
-  const viewLabels = {leasing:'Leasing',funded:'Funded',ops:'Ops',complete:'Complete',closed:'Closed/Lost'};
+  const viewLabels = {leasing:'In Financing',funded:'Funded',ops:'Operations',complete:'Complete',closed:'Dead/Lost'};
   document.getElementById('dealListRole').textContent = viewLabels[currentView] || currentView;
 
   if (filtered.length === 0) {
