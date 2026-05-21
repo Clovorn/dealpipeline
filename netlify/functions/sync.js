@@ -8,22 +8,106 @@ const CORS = {
   'Content-Type': 'application/json'
 };
 
+// Extract answer value from Jotform answers object by matching question text keywords
+function getField(answers, ...keys) {
+  for (const [, v] of Object.entries(answers)) {
+    if (!v || !v.text) continue;
+    const label = v.text.toLowerCase();
+    if (keys.some(k => label.includes(k.toLowerCase()))) {
+      const ans = v.answer;
+      if (!ans) return '';
+      if (typeof ans === 'string') return ans.trim();
+      if (typeof ans === 'object') {
+        // Name fields: {first, last} or {first, middle, last}
+        if (ans.first !== undefined || ans.last !== undefined) {
+          return [ans.first, ans.middle, ans.last].filter(Boolean).join(' ').trim();
+        }
+        if (Array.isArray(ans)) return ans.filter(Boolean).join(', ').trim();
+        return Object.values(ans).filter(Boolean).join(' ').trim();
+      }
+    }
+  }
+  return '';
+}
+
+// Parse a full "First Last" contact name into parts
+function parseName(fullName) {
+  if (!fullName) return { first: 'Unknown', last: '' };
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: '' };
+  return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
+// Map Jotform submission answers to deal fields
+function mapSubmission(sub) {
+  const answers = sub.answers || {};
+
+  // Contact name — Jotform stores as "Contact Name" full text field
+  const contactName = getField(answers, 'contact name');
+  const { first, last } = parseName(contactName);
+
+  // Sales rep — stored as "Ronnoco Sales Rep" with first/last subfields
+  const salesRepFirst = getField(answers, 'ronnoco sales rep');
+  const salesRep = salesRepFirst || '';
+
+  const deal = {
+    jotform_submission_id: String(sub.id),
+    first_name:            first,
+    last_name:             last,
+    email:                 getField(answers, 'contacts email', 'contact email', 'email'),
+    phone:                 getField(answers, 'contact cell', 'cell phone', 'store phone'),
+    store_name:            getField(answers, 'store name'),
+    legal_business_name:   getField(answers, 'legal business name'),
+    address:               getField(answers, 'street address'),
+    store_phone:           getField(answers, 'store phone'),
+    customer_account:      getField(answers, 'customer account', 'account#'),
+    chain_store:           getField(answers, 'chain store') || 'No',
+    sales_rep:             salesRep,
+    sales_rep_email:       getField(answers, 'ronnoco sales rep email', 'sales rep email'),
+    rom:                   getField(answers, 'select the rom', 'rom'),
+    coffee_program:        getField(answers, 'coffee program'),
+    deal_type:             getField(answers, 'pick which is applicable', 'deal type', 'type'),
+    equipment_selection:   getField(answers, 'select equipment', 'equipment needed'),
+    total_eq_cost:         getField(answers, 'total eq cost', 'total amount'),
+    target_install_date:   getField(answers, 'target install date', 'install date'),
+    emergency_install:     getField(answers, 'emergency install') || 'No',
+    parent_distributor:    getField(answers, 'parent distributor', 'distributor name'),
+    sub_group:             getField(answers, 'sub group', 'subgroup'),
+    distributor_rep_email: getField(answers, 'distributor rep email', 'dist rep email'),
+    graphics_package:      getField(answers, 'pick a graphics package', 'graphics package'),
+    notes:                 getField(answers, 'additional note', 'equipment & service notes', 'notes'),
+    is_new_customer:       getField(answers, 'current ronnoco customer').toLowerCase().includes('no'),
+    jotform_answers:       answers,
+    updated_at:            new Date().toISOString(),
+  };
+
+  return deal;
+}
+
+// A submission is valid if it has at minimum a store name or a contact name
+function isValidSubmission(sub) {
+  const answers = sub.answers || {};
+  const contactName = getField(answers, 'contact name');
+  const storeName = getField(answers, 'store name');
+  const salesRep = getField(answers, 'ronnoco sales rep');
+  // Must have at least a store name AND either a contact name or sales rep
+  return storeName.length > 0 && (contactName.length > 0 || salesRep.length > 0);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   const apiKey = event.headers['x-api-key'] || (event.body ? JSON.parse(event.body).apiKey : null);
   if (!apiKey) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Missing Jotform API key' }) };
-  if (!SB_KEY) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'SUPABASE_SERVICE_KEY not configured in Netlify environment variables' }) };
+  if (!SB_KEY) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'SUPABASE_SERVICE_KEY not configured' }) };
 
   try {
-    // Fetch all existing jotform_submission_ids from DB in one query
+    // Load all existing submission IDs into memory first
     const existingRes = await fetch(`${SB_URL}/rest/v1/deals?select=id,jotform_submission_id,current_step,phase,deal_status&limit=10000`, {
       headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
     });
     const existingDeals = await existingRes.json();
-
-    // Build a map: submission_id -> {id, current_step, phase, deal_status}
     const existingMap = {};
     for (const d of (existingDeals || [])) {
       if (d.jotform_submission_id) existingMap[d.jotform_submission_id] = d;
@@ -31,20 +115,16 @@ exports.handler = async (event) => {
 
     let offset = 0;
     const limit = 100;
-    let added = 0, updated = 0;
+    let added = 0, updated = 0, skipped = 0;
     let hasMore = true;
 
     while (hasMore) {
-      // Pull newest first (DESC by created_at)
-      const url = `https://ronnoco.jotform.com/API/form/${FORM_ID}/submissions?apiKey=${apiKey}&limit=${limit}&offset=${offset}&orderby=created_at,DESC`;
+      const url = `https://api.jotform.com/form/${FORM_ID}/submissions?apiKey=${apiKey}&limit=${limit}&offset=${offset}&orderby=created_at,DESC`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.responseCode !== 200) {
-        return {
-          statusCode: 400, headers: CORS,
-          body: JSON.stringify({ error: data.message || 'Jotform API error', code: data.responseCode })
-        };
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: data.message || 'Jotform API error', code: data.responseCode }) };
       }
 
       const submissions = data.content || [];
@@ -52,61 +132,18 @@ exports.handler = async (event) => {
 
       for (const sub of submissions) {
         const subId = String(sub.id);
-        const answers = sub.answers || {};
 
-        // Field extractor — matches question text to known keywords
-        const g = (...keys) => {
-          for (const [, v] of Object.entries(answers)) {
-            if (!v || !v.text) continue;
-            const label = v.text.toLowerCase();
-            if (keys.some(k => label.includes(k.toLowerCase()))) {
-              const ans = v.answer;
-              if (!ans) return '';
-              if (typeof ans === 'string') return ans.trim();
-              if (typeof ans === 'object') {
-                if (ans.first || ans.last) return [ans.first, ans.last].filter(Boolean).join(' ').trim();
-                if (Array.isArray(ans)) return ans.filter(Boolean).join(', ').trim();
-                return Object.values(ans).filter(Boolean).join(' ').trim();
-              }
-            }
-          }
-          return '';
-        };
+        // Skip invalid/incomplete submissions (test entries, blanks)
+        if (!isValidSubmission(sub)) {
+          skipped++;
+          continue;
+        }
 
-        const newCust = g('new customer');
-        const fields = {
-          jotform_submission_id: subId,
-          first_name:            g('first name', 'customer first') || 'Unknown',
-          last_name:             g('last name', 'customer last'),
-          email:                 g('email'),
-          phone:                 g('phone', 'cell', 'mobile'),
-          store_name:            g('store name', 'business name', 'dba', 'store'),
-          address:               g('address', 'street', 'location'),
-          sales_rep:             g('sales rep', 'rep name', 'salesperson'),
-          sales_rep_email:       g('rep email', 'sales rep email'),
-          distributor_rep_email: g('distributor rep email', 'dist rep email'),
-          rom:                   g('rom', 'region', 'regional'),
-          deal_type:             g('deal type', 'type of deal'),
-          purchase_type:         g('purchase type', 'applicable'),
-          total_eq_cost:         g('eq cost', 'equipment cost', 'total cost'),
-          parent_distributor:    g('parent distributor', 'distributor name', 'distributor'),
-          target_install_date:   g('install date', 'target install', 'installation date'),
-          graphics_package:      g('graphics package', 'graphics'),
-          emergency_install:     g('emergency'),
-          coffee_program:        g('coffee program', 'program'),
-          chain_store:           g('chain store', 'chain'),
-          customer_account:      g('account number', 'customer account', 'account'),
-          sub_group:             g('sub group', 'subgroup'),
-          notes:                 g('notes', 'additional', 'comments'),
-          is_new_customer:       newCust.toLowerCase().includes('yes') || newCust.toLowerCase().includes('new'),
-          jotform_answers:       answers,
-          updated_at:            new Date().toISOString(),
-        };
-
+        const fields = mapSubmission(sub);
         const existing = existingMap[subId];
 
         if (existing) {
-          // Update contact/form data only — never overwrite pipeline position
+          // Update form data only — never overwrite pipeline position
           await fetch(`${SB_URL}/rest/v1/deals?id=eq.${existing.id}`, {
             method: 'PATCH',
             headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
@@ -114,7 +151,7 @@ exports.handler = async (event) => {
           });
           updated++;
         } else {
-          // New submission — use upsert with ON CONFLICT DO NOTHING as safety net
+          // New deal — insert at submitted
           const insertRes = await fetch(`${SB_URL}/rest/v1/deals`, {
             method: 'POST',
             headers: {
@@ -135,18 +172,11 @@ exports.handler = async (event) => {
             const inserted = await insertRes.json();
             const dealId = inserted[0]?.id;
             if (dealId) {
-              // Add to our local map so subsequent pages don't re-insert
-              existingMap[subId] = { id: dealId, current_step: 'submitted', phase: 'leasing', deal_status: 'active' };
-              // Log activity
+              existingMap[subId] = { id: dealId };
               await fetch(`${SB_URL}/rest/v1/deal_activity`, {
                 method: 'POST',
                 headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  deal_id: dealId,
-                  action: 'Deal created',
-                  detail: 'Imported via Jotform sync',
-                  actor: fields.sales_rep || 'Sync'
-                })
+                body: JSON.stringify({ deal_id: dealId, action: 'Deal created', detail: 'Imported via Jotform sync', actor: fields.sales_rep || 'Sync' })
               });
               added++;
             }
@@ -161,7 +191,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: CORS,
-      body: JSON.stringify({ ok: true, added, updated, total: added + updated })
+      body: JSON.stringify({ ok: true, added, updated, skipped, total: added + updated })
     };
 
   } catch (err) {

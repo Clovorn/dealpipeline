@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Ronnoco Deal Sheet</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --navy:#1a3a6b;--navy-dark:#0f2347;--navy-mid:#1e4480;
+  --green:#1a4d2e;--amber:#854f0b;
+  --gray-50:#f7f9fc;--gray-100:#f0f2f5;--gray-200:#e2e6ed;
+  --gray-300:#d0d6e0;--gray-400:#8a9ab0;--gray-600:#3a4a5e;--gray-900:#1e2d42;
+  --red:#a32d2d;--red-light:#fef0f0;--red-border:#f0b0b0;
+  --surface:#fff;--border:#e2e6ed;--text:#1e2d42;--text2:#5a6a7e;--text3:#8a9ab0;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--text);min-height:100vh}
+
+/* HEADER */
+.header{background:var(--navy);padding:0 24px;height:56px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.header-logo{height:30px;width:auto}
+.header-divider{width:1px;height:22px;background:rgba(255,255,255,0.2)}
+.header-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:-0.2px}
+.header-sub{font-size:11px;color:rgba(255,255,255,0.5);margin-left:auto}
+
+/* LAYOUT */
+.page{max-width:860px;margin:0 auto;padding:28px 16px 60px}
+.page-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-0.4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+
+/* SECTIONS */
+.form-section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden}
+.section-header{background:var(--navy);padding:12px 18px;display:flex;align-items:center;gap:10px}
+.section-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.section-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:-0.1px}
+.section-body{padding:18px}
+
+/* GRID */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-grid.full{grid-template-columns:1fr}
+.span-2{grid-column:span 2}
+.span-3{grid-column:span 3}
+
+/* FIELDS */
+.field{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px}
+.field-label.required::after{content:' *';color:var(--red)}
+.field-input{padding:8px 11px;border:0.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.15s,background 0.15s;width:100%}
+.field-input:focus{border-color:var(--navy);background:#fff;box-shadow:0 0 0 3px rgba(26,58,107,0.08)}
+.field-input.error{border-color:var(--red);background:var(--red-light)}
+.field-select{padding:8px 11px;border:0.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;cursor:pointer}
+.field-select:focus{border-color:var(--navy);background:#fff}
+.field-textarea{padding:8px 11px;border:0.5px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-50);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;resize:vertical;min-height:80px;width:100%}
+.field-textarea:focus{border-color:var(--navy);background:#fff}
+.field-hint{font-size:10px;color:var(--text3);margin-top:2px}
+.field-error{font-size:10px;color:var(--red);margin-top:2px;display:none}
+.field-input.error + .field-error{display:block}
+
+/* RADIO / CHECKBOX GROUP */
+.radio-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.radio-option{display:flex;align-items:center;gap:6px;padding:6px 12px;border:0.5px solid var(--gray-300);border-radius:20px;cursor:pointer;transition:all 0.15s;font-size:12px;color:var(--text2);background:var(--gray-50)}
+.radio-option:hover{border-color:var(--navy);color:var(--navy)}
+.radio-option input{display:none}
+.radio-option.selected{background:var(--navy);color:#fff;border-color:var(--navy)}
+.radio-option.selected-green{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* CHECKBOX TOGGLE */
+.toggle-wrap{display:flex;align-items:center;gap:10px;padding:10px 0}
+.toggle{width:40px;height:22px;background:var(--gray-300);border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+.toggle.on{background:var(--navy)}
+.toggle-thumb{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.toggle.on .toggle-thumb{left:20px}
+.toggle-label{font-size:13px;color:var(--text);cursor:pointer}
+.toggle-label strong{color:var(--navy)}
+
+/* SUBMIT */
+.submit-area{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:20px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.submit-note{font-size:12px;color:var(--text2);line-height:1.5}
+.submit-note strong{color:var(--text);display:block;margin-bottom:2px}
+.btn-submit{padding:11px 28px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.15s;white-space:nowrap;letter-spacing:-0.2px}
+.btn-submit:hover{background:var(--navy-mid)}
+.btn-submit:disabled{background:var(--gray-400);cursor:not-allowed}
+
+/* SUCCESS */
+.success-screen{display:none;text-align:center;padding:60px 24px}
+.success-icon{width:64px;height:64px;background:#eaf6e0;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+.success-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.6}
+.btn-another{padding:10px 24px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--gray-900);color:#fff;padding:10px 16px;border-radius:var(--radius);font-size:13px;z-index:2000;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.error{background:#7a1a1a}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .form-grid,.form-grid.three{grid-template-columns:1fr}
+  .span-2,.span-3{grid-column:span 1}
+  .submit-area{flex-direction:column;align-items:stretch}
+  .btn-submit{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img class="header-logo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 32'%3E%3Crect width='120' height='32' fill='none'/%3E%3Ctext x='0' y='22' font-family='Arial Black,sans-serif' font-weight='900' font-size='18' fill='white' letter-spacing='-0.5'%3ERONNOCO%3C/text%3E%3C/svg%3E" alt="Ronnoco"/>
+  <div class="header-divider"></div>
+  <div class="header-title">Deal Sheet</div>
+  <div class="header-sub">Ronnoco Beverage Solutions</div>
+</div>
+
+<div class="page" id="formPage">
+  <div class="page-title">New Deal Submission</div>
+  <div class="page-sub">Complete all required fields and submit to create a new deal in the pipeline.</div>
+
+  <form id="dealForm" onsubmit="submitDeal(event)">
+
+    <!-- SECTION 1: Customer Info -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div class="section-title">Customer Information</div>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label required">First Name</label>
+            <input class="field-input" id="first_name" type="text" placeholder="First name" required/>
+          </div>
+          <div class="field">
+            <label class="field-label required">Last Name</label>
+            <input class="field-input" id="last_name" type="text" placeholder="Last name" required/>
+          </div>
+          <div class="field">
+            <label class="field-label required">Email</label>
+            <input class="field-input" id="email" type="email" placeholder="customer@email.com" required/>
+          </div>
+          <div class="field">
+            <label class="field-label">Phone</label>
+            <input class="field-input" id="phone" type="tel" placeholder="(555) 000-0000"/>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin-top:12px">
+          <div class="toggle" id="newCustToggle" onclick="toggleField('newCustToggle','is_new_customer')"></div>
+          <div class="toggle-label" onclick="toggleField('newCustToggle','is_new_customer')">
+            <strong>New Customer</strong> — Check if this customer is not yet in the CRM
+          </div>
+          <input type="hidden" id="is_new_customer" value="false"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Store Info -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div class="section-title">Store Information</div>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+          <div class="field span-2">
+            <label class="field-label required">Store / Business Name (DBA)</label>
+            <input class="field-input" id="store_name" type="text" placeholder="Store or business name" required/>
+          </div>
+          <div class="field span-2">
+            <label class="field-label">Legal Business Name</label>
+            <input class="field-input" id="legal_business_name" type="text" placeholder="Legal entity name if different"/>
+          </div>
+          <div class="field span-2">
+            <label class="field-label required">Store Address</label>
+            <input class="field-input" id="address" type="text" placeholder="Street address, city, state, ZIP" required/>
+          </div>
+          <div class="field">
+            <label class="field-label">Store Phone</label>
+            <input class="field-input" id="store_phone" type="tel" placeholder="Store phone number"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Customer Account #</label>
+            <input class="field-input" id="customer_account" type="text" placeholder="Account number if existing"/>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin-top:12px">
+          <div class="toggle" id="chainToggle" onclick="toggleField('chainToggle','chain_store')"></div>
+          <div class="toggle-label" onclick="toggleField('chainToggle','chain_store')">
+            <strong>Chain Store</strong> — This location is part of a chain or franchise
+          </div>
+          <input type="hidden" id="chain_store" value="No"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Sales Info -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div class="section-title">Sales Information</div>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label required">Sales Rep Name</label>
+            <input class="field-input" id="sales_rep" type="text" placeholder="Your full name" required/>
+          </div>
+          <div class="field">
+            <label class="field-label required">Sales Rep Email</label>
+            <input class="field-input" id="sales_rep_email" type="email" placeholder="rep@ronnoco.com" required/>
+          </div>
+          <div class="field">
+            <label class="field-label required">ROM / Region</label>
+            <select class="field-select" id="rom" required>
+              <option value="">Select region…</option>
+              <option>Central</option>
+              <option>Northeast</option>
+              <option>Southeast</option>
+              <option>Midwest</option>
+              <option>Southwest</option>
+              <option>West</option>
+              <option>Northwest</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Coffee Program</label>
+            <select class="field-select" id="coffee_program">
+              <option value="">Select program…</option>
+              <option>Full Coffee</option>
+              <option>Bean to Cup</option>
+              <option>Pour Over</option>
+              <option>Espresso</option>
+              <option>Cold Brew</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: Deal Info -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div class="section-title">Deal Information</div>
+      </div>
+      <div class="section-body">
+        <div class="field" style="margin-bottom:14px">
+          <label class="field-label required">Deal Type</label>
+          <div class="radio-group" id="deal_type_group">
+            <label class="radio-option" onclick="selectRadio('deal_type_group',this,'Equipment Lease')">
+              <input type="radio" name="deal_type" value="Equipment Lease"/> Equipment Lease
+            </label>
+            <label class="radio-option" onclick="selectRadio('deal_type_group',this,'Finance Equipment')">
+              <input type="radio" name="deal_type" value="Finance Equipment"/> Finance Equipment
+            </label>
+            <label class="radio-option" onclick="selectRadio('deal_type_group',this,'Purchase From Ronnoco')">
+              <input type="radio" name="deal_type" value="Purchase From Ronnoco"/> Purchase From Ronnoco
+            </label>
+            <label class="radio-option" onclick="selectRadio('deal_type_group',this,'Loan Equipment')">
+              <input type="radio" name="deal_type" value="Loan Equipment"/> Loan Equipment
+            </label>
+          </div>
+          <input type="hidden" id="deal_type" value=""/>
+        </div>
+        <div class="form-grid three">
+          <div class="field">
+            <label class="field-label">Equipment Selection</label>
+            <input class="field-input" id="equipment_selection" type="text" placeholder="Equipment model/type"/>
+          </div>
+          <div class="field">
+            <label class="field-label">Total Equipment Cost</label>
+            <input class="field-input" id="total_eq_cost" type="text" placeholder="$0.00"/>
+          </div>
+          <div class="field">
+            <label class="field-label required">Target Install Date</label>
+            <input class="field-input" id="target_install_date" type="date" required/>
+          </div>
+        </div>
+        <div class="toggle-wrap" style="margin-top:8px">
+          <div class="toggle" id="emergencyToggle" onclick="toggleField('emergencyToggle','emergency_install')"></div>
+          <div class="toggle-label" onclick="toggleField('emergencyToggle','emergency_install')">
+            <strong>Emergency Install</strong> — This deal requires priority installation scheduling
+          </div>
+          <input type="hidden" id="emergency_install" value="No"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: Distribution -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div class="section-title">Distribution</div>
+      </div>
+      <div class="section-body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label required">Parent Distributor</label>
+            <input class="field-input" id="parent_distributor" type="text" placeholder="Distributor name" required/>
+          </div>
+          <div class="field">
+            <label class="field-label">Sub Group</label>
+            <input class="field-input" id="sub_group" type="text" placeholder="Sub group if applicable"/>
+          </div>
+          <div class="field">
+            <label class="field-label required">Distributor Rep Email</label>
+            <input class="field-input" id="distributor_rep_email" type="email" placeholder="rep@distributor.com" required/>
+            <div class="field-hint">Used for installation scheduled notifications</div>
+          </div>
+          <div class="field">
+            <label class="field-label">Graphics Package</label>
+            <select class="field-select" id="graphics_package">
+              <option value="">Select package…</option>
+              <option>Standard Wrap</option>
+              <option>Custom Graphics</option>
+              <option>No Graphics</option>
+              <option>TBD</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 6: Notes -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <div class="section-title">Additional Notes</div>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label class="field-label">Notes</label>
+          <textarea class="field-textarea" id="notes" placeholder="Any additional information, special requirements, or context for this deal…" rows="4"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-area">
+      <div class="submit-note">
+        <strong>Ready to submit?</strong>
+        This deal will be created in the pipeline at the Submitted stage and the leasing team will be notified.
+      </div>
+      <button type="submit" class="btn-submit" id="submitBtn">Submit Deal →</button>
+    </div>
+
+  </form>
+</div>
+
+<!-- SUCCESS -->
+<div class="page" id="successPage" style="display:none">
+  <div class="success-screen">
+    <div class="success-icon">✓</div>
+    <div class="success-title">Deal Submitted!</div>
+    <div class="success-sub" id="successMsg">The deal has been created in the pipeline and is ready for the leasing team.</div>
+    <button class="btn-another" onclick="resetForm()">Submit Another Deal</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = 'https://hvmlmequwjxvrmgpltec.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWxtZXF1d2p4dnJtZ3BsdGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODEyNzMsImV4cCI6MjA5MzA1NzI3M30.bT56CL9oK9HcRBQTry3G5kBqbseuGDaxKvqyDkCczHM';
+const SB_HEADERS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+
+function toggleField(toggleId, fieldId) {
+  const toggle = document.getElementById(toggleId);
+  const field = document.getElementById(fieldId);
+  const isOn = toggle.classList.toggle('on');
+  toggle.querySelector('.toggle-thumb') || toggle.insertAdjacentHTML('beforeend','<div class="toggle-thumb"></div>');
+  if (fieldId === 'is_new_customer') field.value = isOn ? 'true' : 'false';
+  else if (fieldId === 'chain_store') field.value = isOn ? 'Yes' : 'No';
+  else if (fieldId === 'emergency_install') field.value = isOn ? 'Yes' : 'No';
+}
+
+// Init toggle thumbs
+document.querySelectorAll('.toggle').forEach(t => {
+  if (!t.querySelector('.toggle-thumb')) {
+    t.insertAdjacentHTML('beforeend','<div class="toggle-thumb"></div>');
+  }
+});
+
+function selectRadio(groupId, el, value) {
+  document.querySelectorAll(`#${groupId} .radio-option`).forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('deal_type').value = value;
+}
+
+function val(id) {
+  return (document.getElementById(id)?.value || '').trim();
+}
+
+async function submitDeal(e) {
+  e.preventDefault();
+
+  // Validate deal type
+  if (!val('deal_type')) { showToast('Please select a deal type', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const deal = {
+    first_name:            val('first_name'),
+    last_name:             val('last_name'),
+    email:                 val('email'),
+    phone:                 val('phone'),
+    is_new_customer:       val('is_new_customer') === 'true',
+    store_name:            val('store_name'),
+    legal_business_name:   val('legal_business_name'),
+    address:               val('address'),
+    store_phone:           val('store_phone'),
+    customer_account:      val('customer_account'),
+    chain_store:           val('chain_store'),
+    sales_rep:             val('sales_rep'),
+    sales_rep_email:       val('sales_rep_email'),
+    rom:                   val('rom'),
+    coffee_program:        val('coffee_program'),
+    deal_type:             val('deal_type'),
+    equipment_selection:   val('equipment_selection'),
+    total_eq_cost:         val('total_eq_cost'),
+    target_install_date:   val('target_install_date'),
+    emergency_install:     val('emergency_install'),
+    parent_distributor:    val('parent_distributor'),
+    sub_group:             val('sub_group'),
+    distributor_rep_email: val('distributor_rep_email'),
+    graphics_package:      val('graphics_package'),
+    notes:                 val('notes'),
+    current_step:          'submitted',
+    phase:                 'leasing',
+    deal_status:           'active',
+  };
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/deals`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, Prefer: 'return=representation' },
+      body: JSON.stringify(deal)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Submission failed');
+    }
+
+    const inserted = await res.json();
+    const dealId = inserted[0]?.id;
+
+    // Log activity
+    if (dealId) {
+      await fetch(`${SB_URL}/rest/v1/deal_activity`, {
+        method: 'POST',
+        headers: SB_HEADERS,
+        body: JSON.stringify({
+          deal_id: dealId,
+          action: 'Deal created',
+          detail: 'Submitted via Deal Sheet form',
+          actor: deal.sales_rep
+        })
+      });
+    }
+
+    // Show success
+    const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
+    document.getElementById('successMsg').textContent =
+      `${name}'s deal for ${deal.store_name} has been created in the pipeline and is ready for the leasing team.`;
+    document.getElementById('formPage').style.display = 'none';
+    document.getElementById('successPage').style.display = 'block';
+    window.scrollTo(0,0);
+
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Submit Deal →';
+  }
+}
+
+function resetForm() {
+  document.getElementById('dealForm').reset();
+  document.getElementById('deal_type').value = '';
+  document.getElementById('is_new_customer').value = 'false';
+  document.getElementById('chain_store').value = 'No';
+  document.getElementById('emergency_install').value = 'No';
+  document.querySelectorAll('.toggle').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('formPage').style.display = 'block';
+  document.getElementById('successPage').style.display = 'none';
+  window.scrollTo(0,0);
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className='toast', 3500);
+}
+</script>
+</body>
+</html>
