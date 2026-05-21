@@ -848,19 +848,19 @@ function renderDetail(deal, notes, activity, docs) {
     (!isLeasing ? 'funded' : null);
 
   let actionBtns = '';
+  // Pipeline navigation
   if (canGoBack && prevStep) actionBtns += `<button class="dh-btn back" onclick="moveDeal('${deal.id}','${prevStep}','${deal.phase}')">← Previous</button>`;
   if (canAdvance && nextStep && !isOpsLast) actionBtns += `<button class="dh-btn ${isLeasing ? 'advance' : 'advance-ops'}" onclick="moveDeal('${deal.id}','${nextStep}',${isLeasing && step==='funded' ? "'ops'" : `'${deal.phase}'`})">Advance: ${labels[nextStep]||OPS_LABELS[nextStep]||'Next'} →</button>`;
+  // Stage-specific actions
   if (canAdvance && !isClosed && step === 'credit_approved' && (currentRole === 'admin' || currentRole === 'leasing')) {
     actionBtns += `<button class="dh-btn deny" onclick="openDenyModal('${deal.id}')">✕ Credit Denied</button>`;
   }
-  if (deal.is_new_customer && currentRole === 'admin' && !isClosed) {
-    actionBtns += `<button class="dh-btn crm" onclick="sendCrmEmail('${deal.id}')">✉ Send CRM Setup</button>`;
+  // CRM Setup — only for ops team when deal is in ops phase and is a new customer
+  if (deal.is_new_customer && !isClosed && deal.phase === 'ops' && (currentRole === 'admin' || currentRole === 'ops')) {
+    actionBtns += `<button class="dh-btn crm" onclick="sendCrmEmail('${deal.id}')">✉ Set Up New Customer</button>`;
   }
-  // Show resend lender button on notify_lender step or any leasing step for admin/leasing
-  if (!isClosed && (currentRole === 'admin' || currentRole === 'leasing') && deal.phase === 'leasing') {
-    actionBtns += `<button class="dh-btn" style="background:rgba(83,74,183,0.1);border-color:#afa9ec;color:#3c3489" onclick="resendLenderEmail('${deal.id}')">↻ Resend Lender</button>`;
-  }
-  actionBtns += `<button class="dh-btn" style="background:rgba(163,45,45,0.15);border-color:var(--red-200);color:var(--red-600)" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
+  // Delete — always last, solid red
+  actionBtns += `<button class="dh-btn" style="background:#a32d2d;border-color:#a32d2d;color:#fff;font-weight:600" onclick="confirmDelete('${deal.id}')">🗑 Delete</button>`;
 
   // Pipeline tracker
   const trackerSteps = steps.map((s, i) => {
@@ -1174,18 +1174,26 @@ async function sendCrmEmail(dealId) {
   const deal = deals.find(d => d.id === dealId);
   if (!deal) return;
   const crmEmail = localStorage.getItem('crm_email');
-  if (!crmEmail) { showToast('Set CRM email in Settings first', 'error'); return; }
+  if (!crmEmail) { showToast('Set CRM email in Settings first', 'error'); openSettings(); return; }
   const name = [deal.first_name, deal.last_name].filter(Boolean).join(' ');
-  const body = buildEmailHtml('New Customer CRM Setup', deal, `
-    <p>Please set up the following new customer in the CRM:</p>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      ${[['Name',name],['Email',deal.email],['Phone',deal.phone],['Store',deal.store_name],['Address',deal.address],
-         ['Deal Type',deal.deal_type||deal.purchase_type],['Sales Rep',deal.sales_rep],['Distributor',deal.parent_distributor],
-         ['Account #',deal.customer_account],['Coffee Program',deal.coffee_program]].map(([k,v])=>
-        `<tr><td style="padding:4px 8px;color:#666;width:140px">${k}</td><td style="padding:4px 8px;font-weight:600">${v||'—'}</td></tr>`).join('')}
-    </table>`);
-  await sendEmail([crmEmail], `New Customer Setup – ${name}`, body);
-  await logActivity(dealId, 'Email sent', 'CRM setup email sent', currentRole);
+  const body = buildEmailHtml('New Customer Setup', deal, `
+    <p>A funded deal has been handed off to Operations. Please set up the following new customer in the CRM.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">
+      ${[['Customer',name],['Email',deal.email],['Phone',deal.phone],
+         ['Store',deal.store_name],['Address',deal.address],
+         ['Deal Type',deal.deal_type||deal.purchase_type],
+         ['Sales Rep',deal.sales_rep],['ROM',deal.rom],
+         ['Distributor',deal.parent_distributor],
+         ['Account #',deal.customer_account],
+         ['Coffee Program',deal.coffee_program],
+         ['Target Install',deal.target_install_date]].map(([k,v])=>
+        `<tr style="border-bottom:1px solid #f0f2f5">
+          <td style="padding:5px 8px;color:#8a9ab0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;width:130px">${k}</td>
+          <td style="padding:5px 8px;color:#1e2d42;font-size:13px">${v||'—'}</td>
+        </tr>`).join('')}
+    </table>`, '');
+  await sendEmail([crmEmail], `New Customer CRM Setup — ${deal.store_name || name}`, body);
+  await logActivity(dealId, 'CRM setup sent', `New customer setup email sent to ${crmEmail}`, currentRole);
   showToast('CRM setup email sent!', 'success');
   selectDeal(dealId);
 }
