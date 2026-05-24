@@ -110,6 +110,9 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .dc-badge.complete{background:var(--green-50);color:var(--green-600);border:0.5px solid var(--green-200)}
 .dc-badge.denied{background:var(--red-100);color:var(--red-600);border:0.5px solid var(--red-200)}
 .dc-badge.new-customer{background:var(--teal-100);color:var(--teal-600);border:0.5px solid var(--teal-200)}
+.dc-badge.pending_director{background:var(--amber-100);color:var(--amber-600);border:0.5px solid var(--amber-200)}
+.director-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--amber-600);margin-top:4px;font-weight:500}
+.director-meta .dir-dot{width:3px;height:3px;border-radius:50%;background:var(--amber-200)}
 .dc-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3)}
 .dc-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--gray-300)}
 
@@ -126,6 +129,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .detail-header.phase-complete{background:#0f3d2e}
 .detail-header.phase-closed{background:#5a1a1a}
 .detail-header.phase-sales{background:#3d3585}
+.detail-header.phase-pending_director{background:#7a4a0a}
 .dh-top{display:flex;align-items:flex-start;gap:12px}
 .dh-avatar{width:42px;height:42px;border-radius:var(--radius);background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:-0.5px}
 .dh-btn.advance-ops{background:#4ade80;border-color:#4ade80;color:#052e16;font-weight:600}
@@ -138,6 +142,11 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .dh-badge.phase-leasing{background:rgba(122,179,245,0.2);color:#9ac5f8;border:0.5px solid rgba(122,179,245,0.35)}
 .dh-badge.phase-ops{background:rgba(74,222,128,0.15);color:#6ee7a0;border:0.5px solid rgba(74,222,128,0.3)}
 .dh-badge.phase-sales{background:rgba(175,169,236,0.18);color:#cfcaf5;border:0.5px solid rgba(175,169,236,0.32)}
+.dh-badge.phase-pending_director{background:rgba(245,204,128,0.22);color:#f5cc80;border:0.5px solid rgba(245,204,128,0.4)}
+.dh-badge.director-approved{background:rgba(74,222,128,0.18);color:#6ee7a0;border:0.5px solid rgba(74,222,128,0.32)}
+.dh-badge.director-rejected{background:rgba(240,176,176,0.2);color:#f5a0a0;border:0.5px solid rgba(240,176,176,0.32)}
+.dh-badge.director-pending{background:rgba(245,204,128,0.22);color:#f5cc80;border:0.5px solid rgba(245,204,128,0.4)}
+.dh-badge.director-retry{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);border:0.5px solid rgba(255,255,255,0.18);font-family:'SF Mono','Consolas',monospace}
 .dh-badge.new-cust{background:rgba(93,202,165,0.2);color:#7ddfba;border:0.5px solid rgba(93,202,165,0.35)}
 .dh-badge.status-denied{background:rgba(240,176,176,0.2);color:#f5a0a0;border:0.5px solid rgba(240,176,176,0.3)}
 .dh-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:0.5px solid rgba(255,255,255,0.12)}
@@ -175,6 +184,29 @@ input,textarea,select{font-family:inherit;font-size:13px}
 .pt-name{font-size:9px;color:var(--text3);text-align:center;line-height:1.3;max-width:52px}
 .pt-name.active{color:var(--navy);font-weight:600}
 .pt-name.active-ops{color:var(--green-600);font-weight:600}
+
+/* DIRECTOR CONTEXT CALLOUT (pending_director phase) */
+.director-context{border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px;border:1px solid;display:flex;gap:12px;align-items:flex-start}
+.director-context.pending{background:#fffbf0;border-color:var(--amber-200)}
+.director-context.rejected{background:var(--red-50);border-color:var(--red-200)}
+.director-context.approved{background:#f0fdf4;border-color:#bbf7d0}
+.dctx-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;font-weight:700}
+.dctx-icon.pending{background:var(--amber-100);color:var(--amber-600)}
+.dctx-icon.rejected{background:var(--red-100);color:var(--red-600)}
+.dctx-icon.approved{background:#dcfce7;color:#15803d}
+.dctx-body{flex:1;min-width:0}
+.dctx-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+.dctx-title.pending{color:var(--amber-600)}
+.dctx-title.rejected{color:var(--red-600)}
+.dctx-title.approved{color:#15803d}
+.dctx-line{font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.45}
+.dctx-line:last-child{margin-bottom:0}
+.dctx-note{background:#fff;border-radius:var(--radius);padding:9px 11px;margin-top:6px;font-size:12px;color:var(--text);line-height:1.5;border:0.5px solid}
+.dctx-note.pending{border-color:var(--amber-200)}
+.dctx-note.rejected{border-color:var(--red-200);color:var(--red-600);font-weight:500}
+.dctx-meta{display:flex;gap:6px;align-items:center;font-size:10px;color:var(--text3);margin-top:8px;flex-wrap:wrap}
+.dctx-meta .dctx-dot{width:3px;height:3px;border-radius:50%;background:var(--gray-300)}
+.dctx-hint{font-size:11px;color:var(--text3);margin-top:8px;font-style:italic}
 
 /* INFO GRID */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -354,6 +386,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
 <!-- VIEW TABS -->
 <div class="roletabs">
   <div class="rtab active" data-view="sales" onclick="setView('sales',this)">Sales / Quotes</div>
+  <div class="rtab" data-view="pending_director" onclick="setView('pending_director',this)">Director Review</div>
   <div class="rtab" data-view="leasing" onclick="setView('leasing',this)">In Financing</div>
   <div class="rtab" data-view="ops" onclick="setView('ops',this)">Operations</div>
   <div class="rtab" data-view="funded" onclick="setView('funded',this)">Funded</div>
@@ -369,6 +402,7 @@ input,textarea,select{font-family:inherit;font-size:13px}
 <!-- METRICS -->
 <div class="metrics">
   <div class="metric"><div class="metric-label">Open Quotes</div><div class="metric-val purple" id="mSales">—</div><div class="metric-sub purple" id="mSalesVal"></div></div>
+  <div class="metric"><div class="metric-label">Awaiting Director</div><div class="metric-val amber" id="mPendingDirector">—</div><div class="metric-sub amber" id="mPendingDirectorVal"></div></div>
   <div class="metric"><div class="metric-label">Total Active</div><div class="metric-val" id="mTotal">—</div><div class="metric-sub" id="mTotalVal"></div></div>
   <div class="metric"><div class="metric-label">In Financing</div><div class="metric-val blue" id="mLeasing">—</div><div class="metric-sub blue" id="mLeasingVal"></div></div>
   <div class="metric">
@@ -578,10 +612,12 @@ const ROLE_LABELS = {admin:'Admin',sales:'Sales',leasing:'Leasing',ops:'Ops'};
 const SALES_STEPS = ['quoted','quote_revised'];
 const LEASING_STEPS = ['submitted','notify_lender','credit_sent','credit_received','credit_approved','paperwork_sent','paperwork_received','funded'];
 const OPS_STEPS = ['customer_setup','equip_ordered','equip_received','install_scheduled','dist_notified','installation','complete'];
+const PENDING_DIRECTOR_STEPS = ['awaiting_review'];
 const SALES_LABELS = {quoted:'Quote Sent',quote_revised:'Quote Revised',quote_accepted:'Quote Accepted',quote_declined:'Quote Declined'};
 const LEASING_LABELS = {submitted:'Submitted',notify_lender:'Notify Lender',credit_sent:'Credit App Sent',credit_received:'Credit App Received',credit_approved:'Credit Approved',paperwork_sent:'Paperwork Sent',paperwork_received:'Paperwork Received',funded:'Funded'};
 const OPS_LABELS = {customer_setup:'Customer Setup',equip_ordered:'Equip Ordered',equip_received:'Equip Received',install_scheduled:'Install Scheduled',dist_notified:'Dist. Notified',installation:'Installation',complete:'Complete'};
-const ALL_LABELS = {...SALES_LABELS,...LEASING_LABELS,...OPS_LABELS,credit_denied:'Credit Denied'};
+const PENDING_DIRECTOR_LABELS = {awaiting_review:'Awaiting Director'};
+const ALL_LABELS = {...SALES_LABELS,...LEASING_LABELS,...OPS_LABELS,...PENDING_DIRECTOR_LABELS,credit_denied:'Credit Denied'};
 
 const DECISION_LABELS = {
   pending: 'Awaiting Response',
@@ -666,6 +702,7 @@ function sumCost(arr) {
 function updateMetrics() {
   const active = deals.filter(d => d.deal_status !== 'closed');
   const sales = active.filter(d => d.phase === 'sales');
+  const pendingDirector = active.filter(d => d.phase === 'pending_director');
   const leasing = active.filter(d => d.phase === 'leasing' && d.current_step !== 'funded');
 
   // Ops = all deals in ops phase (including complete) — full funded value in the system
@@ -691,6 +728,12 @@ function updateMetrics() {
   const mSalesValEl = document.getElementById('mSalesVal');
   if (mSalesEl) mSalesEl.textContent = sales.length;
   if (mSalesValEl) mSalesValEl.textContent = fmtCurrency(sumCost(sales));
+
+  // Awaiting Director — purchase/loan deals queued for director approval
+  const mPdEl = document.getElementById('mPendingDirector');
+  const mPdValEl = document.getElementById('mPendingDirectorVal');
+  if (mPdEl) mPdEl.textContent = pendingDirector.length;
+  if (mPdValEl) mPdValEl.textContent = fmtCurrency(sumCost(pendingDirector));
 
   document.getElementById('mTotal').textContent = active.length;
   document.getElementById('mTotalVal').textContent = fmtCurrency(sumCost(active));
@@ -725,7 +768,11 @@ function getFilteredDeals() {
     } else if (currentView === 'leasing') {
       if (isClosed) return false;
       if (d.phase === 'sales') return false;
+      if (d.phase === 'pending_director') return false;
       if (step === 'funded' || d.phase === 'ops') return false;
+    } else if (currentView === 'pending_director') {
+      if (isClosed) return false;
+      if (d.phase !== 'pending_director') return false;
     } else if (currentView === 'funded') {
       if (isClosed) return false;
       // Funded tab = all deals that have been funded (ops phase) + deals at funded step
@@ -789,7 +836,7 @@ function renderDealList() {
   } else if (fundedTotalEl) {
     fundedTotalEl.style.display = 'none';
   }
-  const viewLabels = {sales:'Sales / Quotes',leasing:'In Financing',funded:'Funded',ops:'Operations',complete:'Complete',closed:'Dead/Lost'};
+  const viewLabels = {sales:'Sales / Quotes',pending_director:'Director Review',leasing:'In Financing',funded:'Funded',ops:'Operations',complete:'Complete',closed:'Dead/Lost'};
   document.getElementById('dealListRole').textContent = viewLabels[currentView] || currentView;
 
   if (filtered.length === 0) {
@@ -802,8 +849,24 @@ function renderDealList() {
     const step = d.current_step;
     const isClosed = d.deal_status === 'closed';
     const isSales = d.phase === 'sales';
-    const badgeClass = isClosed ? 'denied' : isSales ? 'sales' : step === 'complete' ? 'complete' : step === 'funded' ? 'funded' : d.phase === 'ops' ? 'ops' : 'leasing';
-    const badgeLabel = isSales ? (step === 'quote_revised' ? 'Revised' : 'Quote Sent') : (ALL_LABELS[step] || step);
+    const isPendingDirector = d.phase === 'pending_director';
+    const decision = d.director_decision;
+    const badgeClass = isClosed ? 'denied' :
+      isSales ? 'sales' :
+      isPendingDirector ? 'pending_director' :
+      step === 'complete' ? 'complete' :
+      step === 'funded' ? 'funded' :
+      d.phase === 'ops' ? 'ops' : 'leasing';
+    let badgeLabel;
+    if (isSales) {
+      badgeLabel = step === 'quote_revised' ? 'Revised' : 'Quote Sent';
+    } else if (isPendingDirector) {
+      badgeLabel = decision === 'approved' ? 'Approved — moving to ops' :
+                   decision === 'rejected' ? 'Rejected — needs revise' :
+                   'Awaiting Director';
+    } else {
+      badgeLabel = ALL_LABELS[step] || step;
+    }
     const date = new Date(d.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const isActive = d.id === currentDealId;
     // For sales rows, show the quote number and viewed-status as the extra meta
@@ -811,6 +874,13 @@ function renderDealList() {
       ${d.quote_number ? `<span style="font-family:'SF Mono','Consolas',monospace;color:var(--purple-600);font-weight:600">${d.quote_number}</span><span class="dc-meta-dot"></span>` : ''}
       ${d.quote_first_viewed_at ? `<span style="color:var(--purple-600)">● viewed</span>` : `<span style="color:var(--text3)">○ not yet viewed</span>`}
       <span class="dc-meta-dot"></span>` : '';
+    // For pending_director rows, surface deal_type, rep's director, retry count
+    const directorMeta = isPendingDirector ? `
+      <div class="director-meta">
+        ${d.deal_type ? `<span>${d.deal_type}</span><span class="dir-dot"></span>` : ''}
+        ${d.rep_director_email ? `<span>→ ${d.rep_director_email}</span>` : `<span style="color:var(--red-600)">⚠ no director assigned</span>`}
+        ${d.director_retry_count > 0 ? `<span class="dir-dot"></span><span>retry ${d.director_retry_count}</span>` : ''}
+      </div>` : '';
     return `<div class="deal-card${isActive?' active':''}" onclick="selectDeal('${d.id}')">
       <div class="dc-row1">
         <div class="dc-name">${d.store_name || name}</div>
@@ -823,6 +893,7 @@ function renderDealList() {
         <span>${date}</span>
         ${d.is_new_customer ? `<span class="dc-meta-dot"></span><span style="color:var(--teal-600);font-weight:600">New Customer</span>` : ''}
       </div>
+      ${directorMeta}
     </div>`;
   } catch(e) { return `<div class="deal-card" style="color:var(--red-600);font-size:11px;padding:10px 14px">Error rendering: ${d.store_name||d.id}</div>`; }
   }).join('');
@@ -1385,8 +1456,9 @@ async function submitCustomerDecision(dealId) {
     nextPhase = 'leasing';
     nextStep = 'submitted';
   } else if (decision === 'purchase' || decision === 'loan') {
-    nextPhase = 'ops';
-    nextStep = 'customer_setup';
+    // Purchase/Loan deals require director approval before entering Ops
+    nextPhase = 'pending_director';
+    nextStep = 'awaiting_review';
   } else if (decision === 'declined') {
     nextPhase = 'sales'; // keep phase for history; deal_status marks it closed
     nextStep = 'quote_declined';
@@ -1470,7 +1542,8 @@ async function submitCustomerDecision(dealId) {
       document.getElementById('salesStageBar').style.display = 'none';
     } else {
       // Switch to the target tab so the rep sees the deal in its new home
-      currentView = nextPhase === 'ops' ? 'ops' : 'leasing';
+      currentView = nextPhase === 'pending_director' ? 'pending_director' :
+                    nextPhase === 'ops' ? 'ops' : 'leasing';
       document.querySelectorAll('[data-view]').forEach(t => t.classList.remove('active'));
       const newTab = document.querySelector(`[data-view="${currentView}"]`);
       if (newTab) newTab.classList.add('active');
@@ -1495,14 +1568,23 @@ function renderDetail(deal, notes, activity, docs) {
   const initials = storeName.split(' ').map(p=>p[0]||'').join('').toUpperCase().slice(0,2);
   const isClosed = deal.deal_status === 'closed';
   const step = deal.current_step;
-  const isLeasing = deal.phase === 'leasing' || LEASING_STEPS.includes(step);
+  const isPendingDirector = deal.phase === 'pending_director';
+  const isLeasing = !isPendingDirector && (deal.phase === 'leasing' || LEASING_STEPS.includes(step));
   const steps = isLeasing ? LEASING_STEPS : OPS_STEPS;
   const labels = isLeasing ? LEASING_LABELS : OPS_LABELS;
   const stepIdx = steps.indexOf(step);
-  const canAdvance = !isClosed && (currentRole === 'admin' || ROLE_STEPS[currentRole].includes(step));
-  const canGoBack = !isClosed && currentRole === 'admin';
+  const canAdvance = !isClosed && !isPendingDirector && (currentRole === 'admin' || ROLE_STEPS[currentRole].includes(step));
+  const canGoBack = !isClosed && !isPendingDirector && currentRole === 'admin';
   const isLastStep = stepIdx === steps.length - 1;
   const isOpsLast = !isLeasing && step === 'complete';
+
+  // Director-decision metadata (only meaningful when phase === 'pending_director')
+  const directorDecision = deal.director_decision || null; // 'approved' | 'rejected' | null
+  const directorDecisionNotes = deal.director_decision_notes || '';
+  const directorDecidedBy = deal.director_decided_by || '';
+  const directorDecidedAt = deal.director_decided_at || '';
+  const directorRetryCount = deal.director_retry_count || 0;
+  const repDirectorEmail = deal.rep_director_email || '';
 
   // Advance/back logic
   const nextStep = isLeasing && step === 'funded' ? 'customer_setup' :
@@ -1609,8 +1691,16 @@ function renderDetail(deal, notes, activity, docs) {
           <div class="dh-name">${deal.store_name || name}</div>
           <div class="dh-sub">${name}${deal.address ? ' · '+deal.address : ''}${deal.deal_type ? ' · '+deal.deal_type : ''}</div>
           <div class="dh-badges">
-            <span class="dh-badge phase-${deal.phase}">${deal.phase === 'sales' ? 'Sales / Quote' : (isLeasing?'Leasing':'Operations')}</span>
+            <span class="dh-badge phase-${deal.phase}">${
+              deal.phase === 'sales' ? 'Sales / Quote' :
+              isPendingDirector ? 'Director Review' :
+              isLeasing ? 'Leasing' : 'Operations'
+            }</span>
             <span class="dh-badge phase-${deal.phase}">${ALL_LABELS[step]||step}</span>
+            ${isPendingDirector && directorDecision === 'approved' ? '<span class="dh-badge director-approved">✓ Director approved</span>' : ''}
+            ${isPendingDirector && directorDecision === 'rejected' ? '<span class="dh-badge director-rejected">✕ Director rejected</span>' : ''}
+            ${isPendingDirector && !directorDecision ? '<span class="dh-badge director-pending">⏱ Awaiting decision</span>' : ''}
+            ${isPendingDirector && directorRetryCount > 0 ? `<span class="dh-badge director-retry">retry ${directorRetryCount}</span>` : ''}
             ${deal.is_new_customer ? '<span class="dh-badge new-cust">New Customer</span>' : ''}
             ${isClosed ? '<span class="dh-badge status-denied">Closed / Lost</span>' : ''}
           </div>
@@ -1619,7 +1709,7 @@ function renderDetail(deal, notes, activity, docs) {
       ${actionBtns ? `<div class="dh-actions">${actionBtns}</div>` : ''}
     </div>
 
-    ${deal.phase === 'sales' ? '' : `
+    ${(deal.phase === 'sales' || isPendingDirector) ? '' : `
     <div class="pipeline-track">
       <div class="pt-header">
         <span class="pt-phase-label ${deal.phase}">${isLeasing ? 'Leasing phase' : 'Operations phase'}</span>
@@ -1627,6 +1717,54 @@ function renderDetail(deal, notes, activity, docs) {
       </div>
       <div class="pt-steps">${trackerSteps}</div>
     </div>`}
+
+    ${!isPendingDirector ? '' : (() => {
+      const decidedAtTxt = directorDecidedAt ? fmtDate(directorDecidedAt) : '';
+      const decidedByTxt = directorDecidedBy || 'director';
+      const submittedAtTxt = deal.updated_at ? fmtDate(deal.updated_at) : '';
+      if (directorDecision === 'rejected') {
+        return `
+        <div class="director-context rejected">
+          <div class="dctx-icon rejected">✕</div>
+          <div class="dctx-body">
+            <div class="dctx-title rejected">Director rejected — rep needs to revise and resubmit</div>
+            <div class="dctx-line">This Purchase/Loan deal was returned by the director. The rep should review the note below, make corrections in Deal Builder, and resubmit for approval.</div>
+            ${directorDecisionNotes ? `<div class="dctx-note rejected">${directorDecisionNotes}</div>` : '<div class="dctx-hint">No rejection note was left.</div>'}
+            <div class="dctx-meta">
+              <span>Rejected by <strong>${decidedByTxt}</strong></span>
+              ${decidedAtTxt ? `<span class="dctx-dot"></span><span>${decidedAtTxt}</span>` : ''}
+              ${repDirectorEmail ? `<span class="dctx-dot"></span><span>rep's director: ${repDirectorEmail}</span>` : ''}
+              ${directorRetryCount > 0 ? `<span class="dctx-dot"></span><span>retry ${directorRetryCount}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }
+      if (directorDecision === 'approved') {
+        return `
+        <div class="director-context approved">
+          <div class="dctx-icon approved">✓</div>
+          <div class="dctx-body">
+            <div class="dctx-title approved">Director approved — moving to Operations</div>
+            <div class="dctx-line">Approved by <strong>${decidedByTxt}</strong>${decidedAtTxt ? ` on ${decidedAtTxt}` : ''}. The deal will advance to Ops on next refresh.</div>
+            ${directorDecisionNotes ? `<div class="dctx-note pending">${directorDecisionNotes}</div>` : ''}
+          </div>
+        </div>`;
+      }
+      // No decision yet — awaiting director
+      return `
+      <div class="director-context pending">
+        <div class="dctx-icon pending">⏱</div>
+        <div class="dctx-body">
+          <div class="dctx-title pending">Awaiting director review</div>
+          <div class="dctx-line">This Purchase/Loan deal is queued for director approval before it can enter Operations. The director reviews and approves/rejects from the Deal Builder app's <strong>My Team</strong> queue, not from this dashboard.</div>
+          <div class="dctx-meta">
+            ${submittedAtTxt ? `<span>Submitted ${submittedAtTxt}</span>` : ''}
+            ${repDirectorEmail ? `<span class="dctx-dot"></span><span>Director: <strong>${repDirectorEmail}</strong></span>` : '<span class="dctx-dot"></span><span style="color:var(--red-600)">⚠ No director assigned to rep</span>'}
+            ${directorRetryCount > 0 ? `<span class="dctx-dot"></span><span>retry ${directorRetryCount}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    })()}
 
     <div class="info-grid">
       ${infoCard('Contact & Store',[
