@@ -4,7 +4,17 @@
 **Baseline:** dealpipeline-main v8.0 (the build with the Sales/Quotes tab + Open Quotes metric)
 **Files changed:** `index.html` only — 2,741 → 2,879 lines (+138, purely additive)
 **Files untouched:** `dealsheet.html`, `netlify/functions/*`, `netlify.toml`
-**No DB migrations in this patch.** The migration that introduced `phase=pending_director`, the 6 `director_*` deal columns, and the widened `phase`/`deal_status` CHECKs was shipped to the pipeline Supabase project (`hvmlmequwjxvrmgpltec`) in v31 Session 1.
+**DB migrations applied in this session** (pipeline Supabase, `hvmlmequwjxvrmgpltec`):
+  1. `v31_director_approval_pipeline` — added 6 director_* columns, CHECK constraint on `director_decision`, two partial indexes.
+  2. `v31_director_column_naming_alignment` — renamed `director_decided_at` → `director_decision_at` and `director_decided_by` → `director_decision_by` to match the Deal Builder app's column references and the existing `customer_decision_at` naming convention.
+
+**Final column names on `deals` (use these everywhere):**
+- `director_decision` (text, NULL or 'approved'/'rejected')
+- `director_decision_at` (timestamptz)
+- `director_decision_by` (text)
+- `director_decision_notes` (text)
+- `director_retry_count` (int NOT NULL DEFAULT 0)
+- `rep_director_email` (text)
 
 ---
 

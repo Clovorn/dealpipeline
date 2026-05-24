@@ -1581,8 +1581,8 @@ function renderDetail(deal, notes, activity, docs) {
   // Director-decision metadata (only meaningful when phase === 'pending_director')
   const directorDecision = deal.director_decision || null; // 'approved' | 'rejected' | null
   const directorDecisionNotes = deal.director_decision_notes || '';
-  const directorDecidedBy = deal.director_decided_by || '';
-  const directorDecidedAt = deal.director_decided_at || '';
+  const directorDecidedBy = deal.director_decision_by || '';
+  const directorDecidedAt = deal.director_decision_at || '';
   const directorRetryCount = deal.director_retry_count || 0;
   const repDirectorEmail = deal.rep_director_email || '';
 
