@@ -946,7 +946,41 @@ function isBundleProduct(name) {
   return BUNDLE_NAMES.some(b => n.includes(b));
 }
 
-function parseEquipment(raw) {
+function parseEquipment(raw, deal) {
+  // Deal Builder shape (May 2026+): the catalog-side Deal Builder writes a
+  // structured `equipment_items` array into `raw_csv` at submit time. Each
+  // entry has { sku, description, model, vendor, quantity, list_price,
+  // price_50_plus, sell_price_override?, from_bundle }. We check this
+  // first because the legacy string-parsers below (built for the Jotform
+  // shape) all fail on the Deal Builder's plain-text `equipment_selection`
+  // summary and return [] — which made every Deal Builder deal render as
+  // "No equipment selected" in this dashboard.
+  //
+  // The price we surface is the effective sell price: the rep's raised
+  // sell_price_override if present and above the catalog floor, otherwise
+  // the 50+ tier (the Deal Builder's default pricing basis), otherwise
+  // list_price. This matches what the rep quoted and what the deal total
+  // is computed from.
+  try {
+    const items = deal && deal.raw_csv && Array.isArray(deal.raw_csv.equipment_items)
+      ? deal.raw_csv.equipment_items
+      : null;
+    if (items && items.length) {
+      return items.map(it => {
+        const sku = (it.sku || '').trim();
+        const desc = (it.description || it.model || '').trim();
+        const name = sku && desc ? `${sku} - ${desc}` : (sku || desc || '(item)');
+        const list = Number(it.list_price) || 0;
+        const p50 = Number(it.price_50_plus) || 0;
+        const ov = Number(it.sell_price_override);
+        const floor = p50 > 0 ? p50 : list;
+        const price = (Number.isFinite(ov) && ov > floor) ? ov : floor;
+        const qty = Number(it.quantity) || 1;
+        return { name, price, qty };
+      });
+    }
+  } catch (e) { /* fall through to legacy parsers */ }
+
   if (!raw) return [];
   try {
     // Handle our clean saved JSON format {"items":[...]}
@@ -1049,7 +1083,7 @@ function parseItemName(name) {
 }
 
 function renderEquipmentTable(raw, dealId, deal) {
-  const items = parseEquipment(raw);
+  const items = parseEquipment(raw, deal);
   if (!items.length) return '<div style="font-size:12px;color:var(--text3);font-style:italic;padding:10px 14px">No equipment selected</div>';
   
   const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
@@ -1302,7 +1336,7 @@ function renderQuoteDetail(deal, notes, activity, docs) {
     <div class="section-card" style="padding:0;overflow:hidden">
       <div style="padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between">
         <div class="section-title" style="margin:0">Equipment Selection</div>
-        <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection).length!==1?'s':''}catch(e){return 's'}})() }</span>
+        <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection, deal).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection, deal).length!==1?'s':''}catch(e){return 's'}})() }</span>
       </div>
       ${(()=>{try{return renderEquipmentTable(deal.equipment_selection, deal.id, deal)}catch(e){return '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">Unable to parse equipment data</div>'}})()}
     </div>
@@ -1791,7 +1825,7 @@ function renderDetail(deal, notes, activity, docs) {
     <div class="section-card" style="padding:0;overflow:hidden">
       <div style="padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between">
         <div class="section-title" style="margin:0">Equipment Selection</div>
-        <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection).length!==1?'s':''}catch(e){return 's'}})() }</span>
+        <span style="font-size:10px;color:var(--text3)">${(()=>{try{return parseEquipment(deal.equipment_selection, deal).length}catch(e){return 0}})() } item${(()=>{try{return parseEquipment(deal.equipment_selection, deal).length!==1?'s':''}catch(e){return 's'}})() }</span>
       </div>
       ${(()=>{try{return renderEquipmentTable(deal.equipment_selection, deal.id, deal)}catch(e){return '<div style="padding:10px 14px;font-size:12px;color:var(--text3)">Unable to parse equipment data</div>'}})()}
     </div>
