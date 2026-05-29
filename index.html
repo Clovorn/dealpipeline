@@ -1099,7 +1099,7 @@ function renderEquipmentTable(raw, dealId, deal) {
       <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(item.price)}</td>
       <td style="padding:7px 10px;font-size:12px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">
         ${fmt(lineTotal)}
-        <button onclick="removeEquipmentRow(this, '\${dealId}')" style="margin-left:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;vertical-align:middle;padding:0" title="Remove">✕</button>
+        <button onclick="removeEquipmentRow(this, '${dealId}')" style="margin-left:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;vertical-align:middle;padding:0" title="Remove">✕</button>
       </td>
     </tr>`;
   }).join('');
@@ -1114,20 +1114,20 @@ function renderEquipmentTable(raw, dealId, deal) {
         <th style="padding:6px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3);text-align:right;border-bottom:0.5px solid var(--border);white-space:nowrap">Line Total</th>
       </tr>
     </thead>
-    <tbody id="eq-tbody-\${dealId}">${rows}</tbody>
+    <tbody id="eq-tbody-${dealId}">${rows}</tbody>
     <tbody>
       <tr>
-        <td style="padding:6px 10px"><input id="eq-new-num-\${dealId}" class="field-input" placeholder="Item #" style="width:100%;font-size:11px;font-family:monospace;padding:4px 7px"/></td>
-        <td style="padding:6px 10px"><input id="eq-new-name-\${dealId}" class="field-input" placeholder="Description" style="width:100%;font-size:12px;padding:4px 7px"/></td>
-        <td style="padding:6px 10px"><input id="eq-new-qty-\${dealId}" class="field-input" placeholder="1" type="number" min="1" style="width:60px;font-size:12px;padding:4px 7px;text-align:center"/></td>
-        <td style="padding:6px 10px"><input id="eq-new-price-\${dealId}" class="field-input" placeholder="0.00" type="number" min="0" step="0.01" style="width:90px;font-size:12px;padding:4px 7px;text-align:right"/></td>
-        <td style="padding:6px 10px;text-align:right"><button class="btn btn-primary" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="addEquipmentItem('\${dealId}')">+ Add</button></td>
+        <td style="padding:6px 10px"><input id="eq-new-num-${dealId}" class="field-input" placeholder="Item #" style="width:100%;font-size:11px;font-family:monospace;padding:4px 7px"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-name-${dealId}" class="field-input" placeholder="Description" style="width:100%;font-size:12px;padding:4px 7px"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-qty-${dealId}" class="field-input" placeholder="1" type="number" min="1" style="width:60px;font-size:12px;padding:4px 7px;text-align:center"/></td>
+        <td style="padding:6px 10px"><input id="eq-new-price-${dealId}" class="field-input" placeholder="0.00" type="number" min="0" step="0.01" style="width:90px;font-size:12px;padding:4px 7px;text-align:right"/></td>
+        <td style="padding:6px 10px;text-align:right"><button class="btn btn-primary" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="addEquipmentItem('${dealId}')">+ Add</button></td>
       </tr>
     </tbody>
     <tfoot>
       <tr style="background:var(--navy)">
         <td colspan="4" style="padding:9px 10px;font-size:12px;font-weight:600;color:#fff">Grand Total — Equipment Cost</td>
-        <td style="padding:9px 10px;font-size:14px;font-weight:700;color:#fff;text-align:right" id="eq-grand-total-\${dealId}">${fmt(total)}</td>
+        <td style="padding:9px 10px;font-size:14px;font-weight:700;color:#fff;text-align:right" id="eq-grand-total-${dealId}">${fmt(total)}</td>
       </tr>
     </tfoot>
   </table>`;
@@ -1915,7 +1915,7 @@ function addEquipmentItem(dealId) {
 async function saveEquipmentChanges(dealId) {
   // Collect current rows from the table and save as structured JSON to equipment_selection
   const tbody = document.getElementById(`eq-tbody-${dealId}`);
-  if (!tbody) return;
+  if (!tbody) { showToast('Could not save equipment — table not found. Please refresh.', 'error'); return; }
   const items = [];
   tbody.querySelectorAll('tr').forEach(row => {
     const cells = row.querySelectorAll('td');
@@ -1937,7 +1937,8 @@ async function saveEquipmentChanges(dealId) {
     // Update local cache
     const deal = deals.find(d => d.id === dealId);
     if (deal) { deal.equipment_selection = saved; deal.total_eq_cost = '$' + total.toFixed(2); }
-  } catch(e) { console.warn('Equipment save failed:', e); }
+    await logActivity(dealId, 'Equipment updated', `${items.length} item${items.length!==1?'s':''} · total $${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`, currentRole);
+  } catch(e) { console.warn('Equipment save failed:', e); showToast('Failed to save equipment changes: ' + e.message, 'error'); }
 }
 
 async function moveDeal(id, newStep, newPhase) {
