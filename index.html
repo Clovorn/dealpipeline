@@ -947,6 +947,21 @@ function isBundleProduct(name) {
 }
 
 function parseEquipment(raw, deal) {
+  // Admin edits win. When the dashboard has saved a clean JSON blob to
+  // `equipment_selection` (e.g. an admin edited a unit price in the Ops
+  // phase), that represents a deliberate override and must take precedence
+  // over the catalog-recomputed prices in raw_csv.equipment_items below.
+  // Without this, a Deal Builder deal always re-derives price from the
+  // catalog on refresh and silently discards the saved edit.
+  if (raw && typeof raw === 'string' && raw.trim().startsWith('{"items"')) {
+    try {
+      const saved = JSON.parse(raw);
+      if (saved && Array.isArray(saved.items) && saved.items.length) {
+        return saved.items.map(i => ({ name: (i.num ? i.num + ' - ' : '') + i.name, price: i.price, qty: i.qty }));
+      }
+    } catch (e) { /* fall through to other parsers */ }
+  }
+
   // Deal Builder shape (May 2026+): the catalog-side Deal Builder writes a
   // structured `equipment_items` array into `raw_csv` at submit time. Each
   // entry has { sku, description, model, vendor, quantity, list_price,
