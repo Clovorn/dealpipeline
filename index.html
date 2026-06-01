@@ -1085,18 +1085,23 @@ function parseItemName(name) {
 function renderEquipmentTable(raw, dealId, deal) {
   const items = parseEquipment(raw, deal);
   if (!items.length) return '<div style="font-size:12px;color:var(--text3);font-style:italic;padding:10px 14px">No equipment selected</div>';
-  
+
+  // Admins can edit unit price once a deal is in the Operations phase.
+  const canEditPrice = currentRole === 'admin' && deal && deal.phase === 'ops';
   const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
   const fmt = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const rows = items.map(item => {
     const itemNum = parseItemNumber(item.name);
     const itemName = parseItemName(item.name);
     const lineTotal = item.price * item.qty;
+    const priceCell = canEditPrice
+      ? `<td contenteditable="true" onblur="updateEqGrandTotal('${dealId}');saveEquipmentChanges('${dealId}')" style="padding:7px 10px;font-size:12px;color:var(--navy);font-weight:600;border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle;outline:none;cursor:text;background:var(--blue-50)" title="Click to edit unit price">${fmt(item.price)}</td>`
+      : `<td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(item.price)}</td>`;
     return `<tr>
       <td style="padding:7px 10px;font-size:11px;font-family:monospace;font-weight:600;color:var(--navy);border-bottom:0.5px solid var(--gray-100);white-space:nowrap;vertical-align:middle">${itemNum || '—'}</td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text);border-bottom:0.5px solid var(--gray-100);vertical-align:middle">${itemName}</td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:center;white-space:nowrap;vertical-align:middle">${item.qty}</td>
-      <td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(item.price)}</td>
+      ${priceCell}
       <td style="padding:7px 10px;font-size:12px;font-weight:600;color:var(--text);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">
         ${fmt(lineTotal)}
         <button onclick="removeEquipmentRow(this, '${dealId}')" style="margin-left:8px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;vertical-align:middle;padding:0" title="Remove">✕</button>
@@ -1838,6 +1843,7 @@ function renderDetail(deal, notes, activity, docs) {
 
     <div class="section-card">
       <div class="section-title">Notes</div>
+      ${currentRole === 'admin' ? '' : `
       <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
         <input type="text" id="noteAuthor_${deal.id}" class="field-input" placeholder="Your name" style="width:160px;flex-shrink:0" value="${localStorage.getItem('note_author_name')||''}"/>
         <textarea class="note-input" id="noteInput_${deal.id}" placeholder="Add a note…" style="flex:1;min-height:52px;margin:0"></textarea>
@@ -1848,6 +1854,7 @@ function renderDetail(deal, notes, activity, docs) {
         </button>
         <button class="btn btn-primary" onclick="addNote('${deal.id}')">Add note</button>
       </div>
+      `}
       <div id="notesList_${deal.id}">${notesList}</div>
     </div>
 
@@ -1861,16 +1868,24 @@ function renderDetail(deal, notes, activity, docs) {
 function updateEqGrandTotal(dealId) {
   const tbody = document.getElementById(`eq-tbody-${dealId}`);
   if (!tbody) return;
+  const fmt = n => '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   let total = 0;
   tbody.querySelectorAll('tr').forEach(row => {
     const cells = row.querySelectorAll('td');
     if (cells.length < 5) return;
-    // Line total is in the last cell text (strip $ and commas)
-    const text = cells[4].innerText.replace(/[^0-9.]/g,'');
-    total += parseFloat(text) || 0;
+    // Recompute the line total from qty × unit price so edited prices flow through.
+    const qty   = parseFloat(cells[2].innerText.replace(/[^0-9.]/g,'')) || 0;
+    const price = parseFloat(cells[3].innerText.replace(/[^0-9.]/g,'')) || 0;
+    const lineTotal = qty * price;
+    // Normalize the displayed unit price + line total.
+    cells[3].textContent = fmt(price);
+    const removeBtn = cells[4].querySelector('button');
+    cells[4].textContent = fmt(lineTotal);
+    if (removeBtn) cells[4].appendChild(removeBtn);
+    total += lineTotal;
   });
   const el = document.getElementById(`eq-grand-total-${dealId}`);
-  if (el) el.textContent = '$' + total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (el) el.textContent = fmt(total);
 }
 
 function removeEquipmentRow(btn, dealId) {
@@ -2151,6 +2166,7 @@ async function logActivity(dealId, action, detail, actor) {
 }
 
 async function addNote(dealId) {
+  if (currentRole === 'admin') { showToast('Admins cannot add notes', 'error'); return; }
   const input = document.getElementById(`noteInput_${dealId}`);
   const nameInput = document.getElementById(`noteAuthor_${dealId}`);
   const text = input.value.trim();
