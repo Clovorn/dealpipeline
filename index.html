@@ -1095,7 +1095,7 @@ function renderEquipmentTable(raw, dealId, deal) {
     const itemName = parseItemName(item.name);
     const lineTotal = item.price * item.qty;
     const priceCell = canEditPrice
-      ? `<td contenteditable="true" onblur="updateEqGrandTotal('${dealId}');saveEquipmentChanges('${dealId}')" style="padding:7px 10px;font-size:12px;color:var(--navy);font-weight:600;border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle;outline:none;cursor:text;background:var(--blue-50)" title="Click to edit unit price">${fmt(item.price)}</td>`
+      ? `<td contenteditable="true" onblur="updateEqGrandTotal('${dealId}')" style="padding:7px 10px;font-size:12px;color:var(--navy);font-weight:600;border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle;outline:none;cursor:text;background:var(--blue-50)" title="Click to edit unit price, then press Save changes">${fmt(item.price)}</td>`
       : `<td style="padding:7px 10px;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--gray-100);text-align:right;white-space:nowrap;vertical-align:middle">${fmt(item.price)}</td>`;
     return `<tr>
       <td style="padding:7px 10px;font-size:11px;font-family:monospace;font-weight:600;color:var(--navy);border-bottom:0.5px solid var(--gray-100);white-space:nowrap;vertical-align:middle">${itemNum || '—'}</td>
@@ -1134,6 +1134,12 @@ function renderEquipmentTable(raw, dealId, deal) {
         <td colspan="4" style="padding:9px 10px;font-size:12px;font-weight:600;color:#fff">Grand Total — Equipment Cost</td>
         <td style="padding:9px 10px;font-size:14px;font-weight:700;color:#fff;text-align:right" id="eq-grand-total-${dealId}">${fmt(total)}</td>
       </tr>
+      ${canEditPrice ? `<tr>
+        <td colspan="5" style="padding:8px 10px;text-align:right;border-top:0.5px solid var(--border)">
+          <span id="eq-save-status-${dealId}" style="font-size:11px;color:var(--text3);margin-right:10px"></span>
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 14px" onclick="saveEquipmentChanges('${dealId}', true)">💾 Save changes</button>
+        </td>
+      </tr>` : ''}
     </tfoot>
   </table>`;
 }
@@ -1927,10 +1933,15 @@ function addEquipmentItem(dealId) {
   showToast('Item added', 'success');
 }
 
-async function saveEquipmentChanges(dealId) {
-  // Collect current rows from the table and save as structured JSON to equipment_selection
+async function saveEquipmentChanges(dealId, explicit) {
+  // Collect current rows from the table and save as structured JSON to equipment_selection.
+  // `explicit` is true when triggered by the Save button — shows clearer confirmation.
+  const statusEl = document.getElementById(`eq-save-status-${dealId}`);
   const tbody = document.getElementById(`eq-tbody-${dealId}`);
   if (!tbody) { showToast('Could not save equipment — table not found. Please refresh.', 'error'); return; }
+  // Make sure displayed totals reflect any in-progress edits before reading them.
+  updateEqGrandTotal(dealId);
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = 'var(--text3)'; }
   const items = [];
   tbody.querySelectorAll('tr').forEach(row => {
     const cells = row.querySelectorAll('td');
@@ -1953,7 +1964,16 @@ async function saveEquipmentChanges(dealId) {
     const deal = deals.find(d => d.id === dealId);
     if (deal) { deal.equipment_selection = saved; deal.total_eq_cost = '$' + total.toFixed(2); }
     await logActivity(dealId, 'Equipment updated', `${items.length} item${items.length!==1?'s':''} · total $${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`, currentRole);
-  } catch(e) { console.warn('Equipment save failed:', e); showToast('Failed to save equipment changes: ' + e.message, 'error'); }
+    if (statusEl) {
+      statusEl.textContent = '✓ Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      statusEl.style.color = 'var(--green-600)';
+    }
+    if (explicit) showToast('Equipment changes saved', 'success');
+  } catch(e) {
+    console.warn('Equipment save failed:', e);
+    if (statusEl) { statusEl.textContent = '✕ Not saved'; statusEl.style.color = 'var(--red-600)'; }
+    showToast('Failed to save equipment changes: ' + e.message, 'error');
+  }
 }
 
 async function moveDeal(id, newStep, newPhase) {
